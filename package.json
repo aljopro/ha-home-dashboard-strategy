@@ -1,0 +1,33 @@
+{
+    "name": "ha-home-dashboard-strategy",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Custom dashboard strategy for Home Assistant (HACS-ready) — scaffolded with TypeScript, Vite and Vitest.",
+    "author": "",
+    "license": "MIT",
+    "private": false,
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "test": "vitest run",
+        "test:watch": "vitest --watch",
+        "format": "prettier --write .",
+        "typecheck": "tsc --noEmit",
+        "deploy": "./deploy.sh"
+    },
+    "files": [
+        "dist/"
+    ],
+    "devDependencies": {
+        "@testing-library/dom": "^8.0.0",
+        "@testing-library/jest-dom": "^6.0.0",
+        "@testing-library/user-event": "^14.0.0",
+        "@types/node": "^20.0.0",
+        "jsdom": "^27.2.0",
+        "prettier": "^2.8.8",
+        "typescript": "^5.2.2",
+        "vite": "^5.0.0",
+        "vitest": "^1.0.0"
+    }
+}
