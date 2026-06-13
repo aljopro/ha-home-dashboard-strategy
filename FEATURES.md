@@ -35,20 +35,25 @@ Depends on: nothing. This is the foundation for all domain summary cards.
 
 ## Climate View + Summary
 
-- [ ] `home-climate` subview strategy
-- [ ] Lists `climate.*`, `humidifier.*`, `fan.*`, `water_heater.*` grouped by area
-- [ ] Summary card aggregate: primary thermostat temperature or count of active entities
-- [ ] Navigation path: `climate`
+- [x] `home-climate` subview strategy
+- [x] Lists `climate.*`, `humidifier.*`, `fan.*` grouped by area (thermostat cards
+      for `climate.*`, tiles otherwise; `fan.*` tiles carry fan-speed / preset /
+      oscillate / direction features). `water_heater.*` intentionally excluded —
+      integrations like GE/SmartHQ map ovens onto it (see entityDomains.ts).
+- [x] Summary card aggregate: count of active entities
+- [x] Navigation path: `climate`
 
 ---
 
 ## Security View + Summary
 
-- [ ] `home-security` subview strategy
-- [ ] Lists `lock.*`, `alarm_control_panel.*`, `cover.*` (door/garage/gate),
-      `binary_sensor.*` (door/window/motion), `camera.*` grouped by area
-- [ ] Summary card aggregate: count of unlocked/open → "All secured" / "1 unlocked"
-- [ ] Navigation path: `security`
+- [x] `home-security` subview strategy
+- [x] Lists `lock.*`, `alarm_control_panel.*`, `cover.*` (door/garage/gate),
+      security `binary_sensor.*`, and `camera.*` grouped by area (cameras as
+      picture-entity cards, everything else as tiles). Membership reuses the
+      shared `securityEntityFilters`.
+- [x] Summary card aggregate: count of unlocked/open → "All secured" / "1 unlocked"
+- [x] Navigation path: `security`
 
 ---
 
@@ -75,22 +80,25 @@ Depends on: nothing. This is the foundation for all domain summary cards.
 
 ---
 
-## Weather Summary (card only — navigates to weather dashboard)
+## Weather Summary (card only — configurable tap action)
 
-- [ ] `tile` card pointing to configured `weather.*` entity (shows current temperature/condition)
-- [ ] `tap_action: navigate` to `weather.dashboard_path` (default: `/dashboard-weather/0`)
-- [ ] Gate: only shown when the resolved weather entity exists in `hass.states`
-- [ ] Config field on `DashboardStrategyConfig`:
+- [x] `tile` card pointing to configured `weather.*` entity (shows current temperature/condition)
+- [x] Configurable `tap_action` (more-info / navigate / url); default (unset) is
+      the tile's own more-info — opening the weather entity view
+- [x] Gate: only shown when the resolved weather entity exists in `hass.states`
+- [x] Config field on `DashboardStrategyConfig`:
       ```ts
       weather?: {
         /** entity_id of the weather entity to read temp/condition from. Defaults to first `weather.*` in hass.states. */
         entity?: string;
-        /** Dashboard path to navigate to on tap. Defaults to `/dashboard-weather/0`. */
-        dashboard_path?: string;
+        /** Tap behaviour (more-info / navigate / url). Default more-info via the tile. */
+        tap_action?: ActionConfig;
       };
       ```
-- [ ] Graphical editor: entity picker (filtered to `weather` domain) + text field for `dashboard_path`
-- [ ] No subview strategy needed — tapping leaves to the existing weather dashboard
+- [x] Graphical editor: entity picker (filtered to `weather` domain) + `ui_action`
+      selector restricted to more-info / navigate / url (navigate shows the
+      ha-navigation-picker dashboard/view list)
+- [x] No subview strategy needed — tap behaviour is user-configurable
 
 ---
 

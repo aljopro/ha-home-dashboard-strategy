@@ -169,6 +169,14 @@ export interface TileCard extends LovelaceCardConfig {
     icon?: string;
     color?: string;
     features?: TileCardFeature[];
+    tap_action?: ActionConfig;
+    grid_options?: GridOptions;
+    /**
+     * What the state line shows. Each entry is an attribute name (rendered with
+     * units, e.g. weather `temperature` → "90 °F") or a special key like
+     * `state`. Multiple entries are joined by `·`. Omitted → the entity state.
+     */
+    state_content?: string | string[];
 }
 
 /**
@@ -328,6 +336,21 @@ export interface DashboardStrategyConfig extends LovelaceStrategyConfig {
     suggested?: boolean;
     /** Home-view header config (graphical editor: toggle + title). */
     header?: StrategyHeaderConfig;
+    /**
+     * Weather summary card. Rendered in the Summaries section as a tile (no
+     * subview of our own). Shown only when the resolved weather entity exists in
+     * `hass.states`.
+     */
+    weather?: {
+        /** entity_id to read from. Defaults to the first `weather.*` in hass.states. */
+        entity?: string;
+        /**
+         * What happens on tap. Set by the editor's action picker (more-info /
+         * navigate / url). When omitted, the tile's default action applies —
+         * opening the weather entity's own more-info view.
+         */
+        tap_action?: ActionConfig;
+    };
     /**
      * Badges rendered at the top of the home view.
      * Accepts either full badge config objects (hand-authored YAML) or plain

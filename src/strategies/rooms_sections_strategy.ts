@@ -25,6 +25,7 @@ import {
 } from './builders/entities/entityFilters.js';
 import { getEntityContext } from './builders/entities/getEntityContext.js';
 import { buildSummaryCards } from './builders/home/summaryCards.js';
+import { buildWeatherCard } from './builders/home/weatherCard.js';
 import {
     buildHomeView,
     buildFavoritesSection,
@@ -179,8 +180,13 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
         },
     };
 
-    // Step 5: Build summary cards
-    const summaryCards = buildSummaryCards(allEntityIds, basePath);
+    // Step 5: Build summary cards (+ Weather tile, appended when a weather
+    // entity is available). Weather has no subview; it taps to its own dashboard.
+    const weatherCard = buildWeatherCard(hass, config.weather);
+    const summaryCards = [
+        ...buildSummaryCards(allEntityIds, basePath),
+        ...(weatherCard ? [weatherCard] : []),
+    ];
 
     // Step 6: Fetch usage-prediction data for suggested section
     let suggestedEntityIds: string[] = [];

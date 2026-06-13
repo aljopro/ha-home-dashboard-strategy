@@ -39,6 +39,18 @@ const SCHEMA = [
     { name: 'favorite_entities', selector: { entity: { multiple: true } } },
     { name: 'suggested', selector: { boolean: {} } },
     { name: 'excluded_entities', selector: { entity: { multiple: true } } },
+    {
+        name: 'weather',
+        type: 'expandable',
+        schema: [
+            { name: 'entity', selector: { entity: { filter: { domain: 'weather' } } } },
+            // `ui_action` selector renders HA's action editor: a dropdown to pick
+            // the tap behaviour, with the matching field shown per mode —
+            // more-info (open the weather entity view), navigate (dashboard/view
+            // picker), or url (external link). Stored as a full tap_action object.
+            { name: 'tap_action', selector: { ui_action: { actions: ['more-info', 'navigate', 'url'] } } },
+        ],
+    },
 ] as const;
 
 const LABELS: Record<string, string> = {
@@ -48,6 +60,9 @@ const LABELS: Record<string, string> = {
     favorite_entities: 'Favorite entities',
     suggested: 'Suggested entities',
     excluded_entities: 'Excluded entities',
+    weather: 'Weather',
+    entity: 'Weather entity',
+    tap_action: 'On tap',
 };
 
 export class RoomsSectionsEditor extends LitElement {
