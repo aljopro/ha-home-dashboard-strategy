@@ -17,6 +17,7 @@
 import type { HomeAssistant } from '../../types/cards.js';
 import { isEntityVisible } from '../builders/entities/entityFilters.js';
 import { isLightLikeSwitch } from '../builders/entities/lightLikeSwitch.js';
+import { collectMaintenanceItems, maintenanceItemCount } from '../builders/subviews/maintenanceView.js';
 
 /** States that read as "inactive / nothing happening" for a generic domain. */
 const INACTIVE_STATES = new Set(['off', 'unavailable', 'unknown', 'idle', 'standby', 'none', '']);
@@ -49,6 +50,9 @@ const OPEN_COVER_CLASSES = new Set(['door', 'garage', 'gate']);
 export function summaryDomains(domain: string): string[] {
     if (domain === 'security') {
         return ['lock', 'alarm_control_panel', 'cover', 'binary_sensor'];
+    }
+    if (domain === 'maintenance') {
+        return ['update', 'sensor', 'binary_sensor'];
     }
     // Lights also reflect light-like switches, so the card watches `switch` too.
     if (domain === 'light') {
@@ -90,6 +94,9 @@ export function domainActivityCount(domain: string, hass: HomeAssistant): number
             return unlocked + openCovers + openSensors;
         }
 
+        case 'maintenance':
+            return maintenanceItemCount(hass);
+
         default:
             return entitiesInDomain(hass, domain).filter((e) => !INACTIVE_STATES.has(e.state)).length;
     }
@@ -121,6 +128,15 @@ export function computeDomainSummary(domain: string, hass: HomeAssistant): strin
 
         case 'security':
             return count === 0 ? 'All secured' : `${count} unsecured`;
+
+        case 'maintenance': {
+            const { updateIds, lowBatteryIds, unavailableIds } = collectMaintenanceItems(hass);
+            const parts: string[] = [];
+            if (updateIds.length) parts.push(`${updateIds.length} update${updateIds.length === 1 ? '' : 's'}`);
+            if (lowBatteryIds.length) parts.push(`${lowBatteryIds.length} low battery`);
+            if (unavailableIds.length) parts.push(`${unavailableIds.length} unavailable`);
+            return parts.length ? parts.join(', ') : 'All good';
+        }
 
         default:
             return count === 0 ? 'All off' : `${count} on`;

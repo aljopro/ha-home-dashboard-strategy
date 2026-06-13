@@ -77,6 +77,17 @@ export const securityEntityFilters: EntityFilter[] = [
     },
 ];
 
+/**
+ * Battery entities scanned for the Maintenance summary/subview: every battery
+ * `sensor.*` and user-facing battery `binary_sensor.*`. Mirrors HA's
+ * maintenanceEntityFilters. Low-battery and unavailable states are derived from
+ * these in the maintenance builder; updates (`update.*`) are handled separately.
+ */
+export const maintenanceBatteryFilters: EntityFilter[] = [
+    { domain: 'sensor', device_class: ['battery'] },
+    { domain: 'binary_sensor', device_class: ['battery'], entity_category: 'none' },
+];
+
 export const DEFAULT_ENTITY_DOMAINS: EntityDomainInfo[] = [
     { id: 'light', name: 'Lights', icon: 'mdi:lamps', filter: lightEntityFilters },
     { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch', filter: switchEntityFilters },

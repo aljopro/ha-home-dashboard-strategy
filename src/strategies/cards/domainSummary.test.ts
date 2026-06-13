@@ -38,6 +38,52 @@ describe('summaryDomains', () => {
     it('expands the security pseudo-domain', () => {
         expect(summaryDomains('security')).toEqual(['lock', 'alarm_control_panel', 'cover', 'binary_sensor']);
     });
+
+    it('expands the maintenance pseudo-domain', () => {
+        expect(summaryDomains('maintenance')).toEqual(['update', 'sensor', 'binary_sensor']);
+    });
+});
+
+/**
+ * Maintenance reads battery entities through the shared filter machinery, which
+ * requires a device — so these fixtures carry device_id + devices, and
+ * device_class lives in state attributes.
+ */
+function maintenanceHass(opts: { update?: boolean; lowBattery?: boolean; unavailable?: boolean }): HomeAssistant {
+    const entities: Record<string, Record<string, unknown>> = {};
+    const states: Record<string, { state: string; attributes: Record<string, unknown> }> = {};
+    const devices: Record<string, unknown> = {};
+    let n = 0;
+    const add = (id: string, state: string, attrs: Record<string, unknown>) => {
+        const dev = `d${n++}`;
+        entities[id] = { entity_id: id, device_id: dev, hidden: false };
+        devices[dev] = { id: dev };
+        states[id] = { state, attributes: attrs };
+    };
+    if (opts.update) add('update.router', 'on', { friendly_name: 'Router' });
+    if (opts.lowBattery) add('sensor.phone_battery', '10', { device_class: 'battery', friendly_name: 'Phone' });
+    if (opts.unavailable) add('sensor.dead_battery', 'unavailable', { device_class: 'battery', friendly_name: 'Dead' });
+    return { states, entities, devices, areas: {} } as unknown as HomeAssistant;
+}
+
+describe('maintenance summary', () => {
+    it('lists each non-empty category', () => {
+        const s = maintenanceHass({ update: true, lowBattery: true, unavailable: true });
+        expect(computeDomainSummary('maintenance', s)).toBe('1 update, 1 low battery, 1 unavailable');
+        expect(domainActivityCount('maintenance', s)).toBe(3);
+    });
+
+    it('pluralizes updates', () => {
+        const s = maintenanceHass({ update: true });
+        // single update reads "1 update"
+        expect(computeDomainSummary('maintenance', s)).toBe('1 update');
+    });
+
+    it('reads "All good" when nothing needs attention', () => {
+        const s = maintenanceHass({});
+        expect(computeDomainSummary('maintenance', s)).toBe('All good');
+        expect(domainHasActivity('maintenance', s)).toBe(false);
+    });
 });
 
 describe('computeDomainSummary', () => {

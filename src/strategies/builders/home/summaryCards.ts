@@ -22,6 +22,7 @@ const SUMMARY_COLORS: Record<string, string> = {
     climate: 'var(--deep-orange-color, #ff5722)',
     security: 'var(--blue-grey-color, #607d8b)',
     media_player: 'var(--blue-color, #2196f3)',
+    maintenance: 'var(--grey-color, #9e9e9e)',
 };
 
 /**

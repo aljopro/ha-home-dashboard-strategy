@@ -71,12 +71,18 @@ Depends on: nothing. This is the foundation for all domain summary cards.
 
 ## Maintenance View + Summary
 
-- [ ] `home-maintenance` subview strategy
-- [ ] Lists `update.*` entities (pending firmware/software updates)
-- [ ] Lists `binary_sensor.*` with device class `battery` in problem state
-- [ ] Lists `sensor.*` with device class `battery` below threshold (< 20%)
-- [ ] Summary card aggregate: total pending items → "All good" / "3 items"
-- [ ] Navigation path: `maintenance`
+- [x] `home-maintenance` subview strategy
+- [x] Lists `update.*` entities with an update available (tiles carry the
+      `update-actions` feature for install/skip)
+- [x] Lists `binary_sensor.*` device-class `battery` in the `on` (low) state
+- [x] Lists `sensor.*` device-class `battery` at or below threshold (≤ 20%)
+- [x] Lists unavailable battery entities (device-offline proxy, matching HA)
+- [x] Summary card aggregate: detailed breakdown, e.g. "1 low battery,
+      1 unavailable" / "All good"; gated on having any items
+- [x] Navigation path: `maintenance`
+- [ ] Follow-on: exclude battery sensors whose device is currently charging
+      (HA does this via a battery_charging binary_sensor); not yet implemented
+- [ ] Follow-on: group each category by area within the subview
 
 ---
 

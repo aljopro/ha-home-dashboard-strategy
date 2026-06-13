@@ -11,6 +11,7 @@ import './homeLightsView.js';
 import './homeClimateView.js';
 import './homeSecurityView.js';
 import './homeMediaPlayersView.js';
+import './homeMaintenanceView.js';
 import './homeAreaView.js';
 import type { HomeAssistant } from '../../types/cards.js';
 
@@ -19,6 +20,7 @@ const TAGS = [
     'll-strategy-view-home-climate',
     'll-strategy-view-home-security',
     'll-strategy-view-home-media-players',
+    'll-strategy-view-home-maintenance',
     'll-strategy-view-home-area',
 ];
 
@@ -72,6 +74,20 @@ describe('view strategy registration', () => {
 
         const view = await generatorFor('ll-strategy-view-home-security')({ type: 'custom:home-security' }, hass);
         expect(view).toMatchObject({ path: 'security', type: 'sections' });
+        const tiles = view.sections[0].cards.filter((c: any) => c.type === 'tile');
+        expect(tiles).toHaveLength(1);
+    });
+
+    it('home-maintenance generate returns a maintenance sections view', async () => {
+        const hass = {
+            entities: { 'update.router': { entity_id: 'update.router', device_id: 'd1' } },
+            devices: { d1: { id: 'd1' } },
+            areas: {},
+            states: { 'update.router': { state: 'on', attributes: { friendly_name: 'Router' } } },
+        } as unknown as HomeAssistant;
+
+        const view = await generatorFor('ll-strategy-view-home-maintenance')({ type: 'custom:home-maintenance' }, hass);
+        expect(view).toMatchObject({ path: 'maintenance', type: 'sections' });
         const tiles = view.sections[0].cards.filter((c: any) => c.type === 'tile');
         expect(tiles).toHaveLength(1);
     });

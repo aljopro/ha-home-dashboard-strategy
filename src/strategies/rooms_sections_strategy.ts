@@ -24,8 +24,9 @@ import {
     sortEntitiesAlphabetically,
 } from './builders/entities/entityFilters.js';
 import { getEntityContext } from './builders/entities/getEntityContext.js';
-import { buildSummaryCards } from './builders/home/summaryCards.js';
+import { buildSummaryCard, buildSummaryCards } from './builders/home/summaryCards.js';
 import { buildWeatherCard } from './builders/home/weatherCard.js';
+import { hasMaintenanceItems } from './builders/subviews/maintenanceView.js';
 import {
     buildHomeView,
     buildFavoritesSection,
@@ -49,6 +50,7 @@ import './views/homeLightsView.js';
 import './views/homeClimateView.js';
 import './views/homeSecurityView.js';
 import './views/homeMediaPlayersView.js';
+import './views/homeMaintenanceView.js';
 import './views/homeAreaView.js';
 
 const SUGGESTED_LIMIT = 8;
@@ -180,11 +182,26 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
         },
     };
 
-    // Step 5: Build summary cards (+ Weather tile, appended when a weather
-    // entity is available). Weather has no subview; it taps to its own dashboard.
+    const maintenanceView = {
+        title: 'Maintenance',
+        path: 'maintenance',
+        subview: true,
+        strategy: {
+            type: 'custom:home-maintenance',
+        },
+    };
+
+    // Step 5: Build summary cards. Maintenance (gated on having any items) and
+    // Weather (gated on a weather entity) are appended after the entity-domain
+    // summaries, mirroring HA's Summaries order. Weather has no subview.
+    const pathPrefix = basePath ? `/${basePath}` : '';
+    const maintenanceCard = hasMaintenanceItems(hass)
+        ? buildSummaryCard('maintenance', 'Maintenance', 'mdi:wrench', `${pathPrefix}/maintenance`)
+        : null;
     const weatherCard = buildWeatherCard(hass, config.weather);
     const summaryCards = [
         ...buildSummaryCards(allEntityIds, basePath),
+        ...(maintenanceCard ? [maintenanceCard] : []),
         ...(weatherCard ? [weatherCard] : []),
     ];
 
@@ -217,7 +234,7 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
     const homeView = buildHomeView(homeViewSections as Parameters<typeof buildHomeView>[0], config);
 
     return {
-        views: [homeView, ...areaViews, lightsView, climateView, securityView, mediaPlayersView],
+        views: [homeView, ...areaViews, lightsView, climateView, securityView, mediaPlayersView, maintenanceView],
     };
 }
 
