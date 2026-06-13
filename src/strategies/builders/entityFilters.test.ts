@@ -5,83 +5,66 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-    filterEntities,
+    filterEntitiesByDomainAndExclusions,
     sortEntitiesAlphabetically,
     filterValidAreas,
     sortAreasAlphabetically,
     getAreaDomainEntities,
     hasDomain,
 } from './entityFilters.js';
-import type { Entity, Area } from '../../types/core.js';
+import type { Entity, Area, EntityDomainInfo } from '../../types/core.js';
+
+function makeMinimalHass(entityDefs: Array<{ entityId: string; deviceId?: string; areaId?: string }>) {
+    const h: any = { entities: {}, states: {}, devices: {}, areas: {} };
+    for (const def of entityDefs) {
+        const deviceId = def.deviceId ?? `dev_${def.entityId}`;
+        h.entities[def.entityId] = { entity_id: def.entityId, device_id: deviceId, area_id: def.areaId ?? null };
+        h.states[def.entityId] = { state: 'on', attributes: {} };
+        h.devices[deviceId] = { id: deviceId, area_id: def.areaId ?? null };
+        if (def.areaId) {
+            h.areas[def.areaId] = { area_id: def.areaId, name: def.areaId };
+        }
+    }
+    return h;
+}
 
 describe('entityFilters', () => {
-    const mockDomains = [
-        { id: 'light', name: 'Lights', icon: 'mdi:lightbulb' },
-        { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch' },
+    const mockDomains: EntityDomainInfo[] = [
+        { id: 'light', name: 'Lights', icon: 'mdi:lightbulb', filter: [{ domain: 'light' }] },
+        { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch', filter: [{ domain: 'switch' }] },
     ];
 
     describe('filterEntitiesByDomainAndExclusions', () => {
         it('filters entities by included domains', () => {
-            const entities: Entity[] = [
-                {
-                    entity_id: 'light.living_room',
-                    name: 'Living Room Light',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-                {
-                    entity_id: 'switch.fan',
-                    name: 'Fan Switch',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-                {
-                    entity_id: 'climate.thermostat',
-                    name: 'Thermostat',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-            ];
+            const hass = makeMinimalHass([
+                { entityId: 'light.living_room' },
+                { entityId: 'switch.fan' },
+                { entityId: 'climate.thermostat' },
+            ]);
 
-            const result = filterEntities(entities, mockDomains, []);
+            const result = filterEntitiesByDomainAndExclusions(hass, mockDomains, []);
 
             expect(result).toHaveLength(2);
-            expect(result.map((e) => e.entity_id)).toEqual(['light.living_room', 'switch.fan']);
+            expect(result.map((e) => e.entity_id)).toContain('light.living_room');
+            expect(result.map((e) => e.entity_id)).toContain('switch.fan');
         });
 
         it('excludes entities in exclusion list', () => {
-            const entities: Entity[] = [
-                {
-                    entity_id: 'light.living_room',
-                    name: 'Living Room Light',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-                {
-                    entity_id: 'light.bedroom',
-                    name: 'Bedroom Light',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-            ];
+            const hass = makeMinimalHass([
+                { entityId: 'light.living_room' },
+                { entityId: 'light.bedroom' },
+            ]);
 
-            const result = filterEntities(entities, mockDomains, ['light.living_room']);
+            const result = filterEntitiesByDomainAndExclusions(hass, mockDomains, ['light.living_room']);
 
             expect(result).toHaveLength(1);
             expect(result[0].entity_id).toBe('light.bedroom');
         });
 
         it('returns empty array if no entities match', () => {
-            const entities: Entity[] = [
-                {
-                    entity_id: 'climate.thermostat',
-                    name: 'Thermostat',
-                    device_id: undefined,
-                    area_id: undefined,
-                },
-            ];
+            const hass = makeMinimalHass([{ entityId: 'climate.thermostat' }]);
 
-            const result = filterEntities(entities, mockDomains, []);
+            const result = filterEntitiesByDomainAndExclusions(hass, mockDomains, []);
 
             expect(result).toHaveLength(0);
         });

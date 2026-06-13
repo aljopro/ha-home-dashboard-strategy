@@ -11,6 +11,7 @@ import {
     buildMediaPlayersView,
 } from './mediaPlayersView.js';
 import type { Entity, HeadingCard } from '../../types/cards.js';
+import { Area } from '../../types/core.js';
 
 describe('mediaPlayersView', () => {
     describe('groupMediaPlayersByArea', () => {
@@ -86,11 +87,12 @@ describe('mediaPlayersView', () => {
     });
 
     describe('buildAreaMediaCards', () => {
+        const livingRoomArea: Area = { area_id: 'living_room', name: 'Living Room' };
+
         it('builds heading and area media cards', () => {
             const mediaByArea = new Map([['living_room', ['media_player.lr']]]);
-            const areaNames = { living_room: 'Living Room' };
 
-            const result = buildAreaMediaCards(['living_room'], areaNames, mediaByArea);
+            const result = buildAreaMediaCards([livingRoomArea], mediaByArea);
 
             expect(result[0]).toMatchObject({
                 type: 'heading',
@@ -109,10 +111,9 @@ describe('mediaPlayersView', () => {
         });
 
         it('skips areas with no media players', () => {
-            const mediaByArea = new Map();
-            const areaNames = { living_room: 'Living Room' };
+            const mediaByArea = new Map<string, string[]>();
 
-            const result = buildAreaMediaCards(['living_room'], areaNames, mediaByArea);
+            const result = buildAreaMediaCards([livingRoomArea], mediaByArea);
 
             expect(result).toHaveLength(1);
             expect(result[0].type).toBe('heading');
@@ -121,9 +122,8 @@ describe('mediaPlayersView', () => {
 
         it('handles multiple media players in one area', () => {
             const mediaByArea = new Map([['living_room', ['media_player.lr1', 'media_player.lr2']]]);
-            const areaNames = { living_room: 'Living Room' };
 
-            const result = buildAreaMediaCards(['living_room'], areaNames, mediaByArea);
+            const result = buildAreaMediaCards([livingRoomArea], mediaByArea);
 
             const mediaCards = result.filter((c) => c.type === 'media-control');
             expect(mediaCards).toHaveLength(2);
@@ -160,11 +160,12 @@ describe('mediaPlayersView', () => {
     });
 
     describe('buildMediaPlayersView', () => {
+        const livingRoomArea: Area = { area_id: 'living_room', name: 'Living Room' };
+
         it('builds complete media players view', () => {
             const mediaByArea = new Map([['living_room', ['media_player.lr']]]);
-            const areaNames = { living_room: 'Living Room' };
 
-            const result = buildMediaPlayersView(mediaByArea, [], ['living_room'], areaNames);
+            const result = buildMediaPlayersView(mediaByArea, [], [livingRoomArea]);
 
             expect(result).toMatchObject({
                 title: 'Media players',
@@ -180,9 +181,8 @@ describe('mediaPlayersView', () => {
 
         it('includes both area and unassigned media in single section', () => {
             const mediaByArea = new Map([['living_room', ['media_player.lr']]]);
-            const areaNames = { living_room: 'Living Room' };
 
-            const result = buildMediaPlayersView(mediaByArea, ['media_player.unassigned'], ['living_room'], areaNames);
+            const result = buildMediaPlayersView(mediaByArea, ['media_player.unassigned'], [livingRoomArea]);
 
             expect(result.sections).toBeDefined();
             const cards = result.sections![0].cards;
