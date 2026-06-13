@@ -43,9 +43,10 @@ import './cards/domainSummaryCard.js';
 
 // Side-effect imports: register the deferred view strategies referenced by the
 // views this dashboard generates (custom:home-lights / home-climate /
-// home-media-players / home-area → ll-strategy-view-home-*).
+// home-security / home-media-players / home-area → ll-strategy-view-home-*).
 import './views/homeLightsView.js';
 import './views/homeClimateView.js';
+import './views/homeSecurityView.js';
 import './views/homeMediaPlayersView.js';
 import './views/homeAreaView.js';
 
@@ -160,6 +161,15 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
         },
     };
 
+    const securityView = {
+        title: 'Security',
+        path: 'security',
+        subview: true,
+        strategy: {
+            type: 'custom:home-security',
+        },
+    };
+
     const mediaPlayersView = {
         title: 'Media Players',
         path: 'media-players',
@@ -201,7 +211,7 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
     const homeView = buildHomeView(homeViewSections as Parameters<typeof buildHomeView>[0], config);
 
     return {
-        views: [homeView, ...areaViews, lightsView, climateView, mediaPlayersView],
+        views: [homeView, ...areaViews, lightsView, climateView, securityView, mediaPlayersView],
     };
 }
 

@@ -172,6 +172,21 @@ export interface ThermostatCard extends LovelaceCardConfig {
 }
 
 /**
+ * Picture-entity card for showing a camera's image. For a camera entity the
+ * built-in card polls the still image and keeps it current on its own (no custom
+ * refresh timer needed). References HA frontend PictureEntityCardConfig.
+ */
+export interface PictureEntityCard extends LovelaceCardConfig {
+    type: 'picture-entity';
+    entity: string;
+    /** 'auto' shows auto-updating stills; 'live' streams when supported. */
+    camera_view?: 'auto' | 'live';
+    name?: string;
+    show_name?: boolean;
+    show_state?: boolean;
+}
+
+/**
  * Union type of all supported card types in this strategy.
  */
 export type StrategyCard =
@@ -181,7 +196,8 @@ export type StrategyCard =
     | MediaControlCard
     | DomainSummaryCard
     | TileCard
-    | ThermostatCard;
+    | ThermostatCard
+    | PictureEntityCard;
 
 // ============================================================================
 // Section & View Types
