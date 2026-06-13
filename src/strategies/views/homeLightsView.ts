@@ -5,7 +5,7 @@
  * area). Delegates to the pure buildLightsView builder.
  */
 
-import { buildLightsView } from '../builders/lightsView.js';
+import { buildLightsView } from '../builders/subviews/lightsView.js';
 import { registerViewStrategy } from './registerViewStrategy.js';
 
 registerViewStrategy('home-lights', async (_config, hass) => buildLightsView(hass));

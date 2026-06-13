@@ -3,9 +3,9 @@
  * Groups media players by area, returns a LovelaceView.
  */
 
-import type { SectionsView, StrategyCard, MediaControlCard, HeadingCard } from '../../types/cards.js';
-import { Area, Entity } from '../../types/core.js';
-import { getEntityAreaId } from './entityFilters.js';
+import type { SectionsView, StrategyCard, MediaControlCard, HeadingCard } from '../../../types/cards.js';
+import { Area, Entity } from '../../../types/core.js';
+import { getEntityAreaId } from '../entities/entityFilters.js';
 
 interface MediaGrouping {
     mediaByArea: Map<string, string[]>;

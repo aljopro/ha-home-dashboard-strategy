@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildEntitiesDomainCard, buildAreaDomainCards, buildAreaView, buildAreaViews } from './areaViews.js';
-import { EntityDomainInfo, EntityContext, Area, Entity } from '../../types/core.js';
+import { EntityDomainInfo, EntityContext, Area, Entity } from '../../../types/core.js';
 
 const mockDomains: EntityDomainInfo[] = [
     { id: 'light', name: 'Lights', icon: 'mdi:lightbulb', filter: [{ domain: 'light' }] },

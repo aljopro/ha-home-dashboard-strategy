@@ -14,7 +14,7 @@ import {
     buildSummarySection,
     buildAreaCardsGridSection,
 } from './viewAssembly.js';
-import type { StrategyCard, GridSection } from '../../types/cards.js';
+import type { StrategyCard, GridSection } from '../../../types/cards.js';
 
 describe('viewAssembly', () => {
     describe('buildGridSection', () => {

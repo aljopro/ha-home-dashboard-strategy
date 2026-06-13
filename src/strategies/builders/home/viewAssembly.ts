@@ -9,7 +9,7 @@ import type {
     SectionsView,
     StrategyCard,
     StrategyHeaderConfig,
-} from '../../types/cards.js';
+} from '../../../types/cards.js';
 
 /**
  * Build a grid section from cards.

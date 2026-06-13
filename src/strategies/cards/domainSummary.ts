@@ -15,8 +15,8 @@
  */
 
 import type { HomeAssistant } from '../../types/cards.js';
-import { isEntityVisible } from '../builders/entityFilters.js';
-import { isLightLikeSwitch } from '../builders/lightLikeSwitch.js';
+import { isEntityVisible } from '../builders/entities/entityFilters.js';
+import { isLightLikeSwitch } from '../builders/entities/lightLikeSwitch.js';
 
 /** States that read as "inactive / nothing happening" for a generic domain. */
 const INACTIVE_STATES = new Set(['off', 'unavailable', 'unknown', 'idle', 'standby', 'none', '']);

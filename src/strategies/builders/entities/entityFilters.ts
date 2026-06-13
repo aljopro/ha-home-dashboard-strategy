@@ -3,9 +3,9 @@
  * One thing in, one thing out. No side effects.
  */
 
-import { HomeAssistant } from '../../types/cards.js';
-import type { Area, Entity, EntityDomainInfo, EntityFilter, EntityState } from '../../types/core.js';
-import { ensureArray } from '../../utils/ensure-array.js';
+import { HomeAssistant } from '../../../types/cards.js';
+import type { Area, Entity, EntityDomainInfo, EntityFilter, EntityState } from '../../../types/core.js';
+import { ensureArray } from '../../../utils/ensure-array.js';
 import { getEntityContext } from './getEntityContext.js';
 
 /**

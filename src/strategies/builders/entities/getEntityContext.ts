@@ -1,5 +1,5 @@
-import { HomeAssistant } from '../../types/cards';
-import type { EntityContext } from '../../types/core';
+import { HomeAssistant } from '../../../types/cards';
+import type { EntityContext } from '../../../types/core';
 
 export function getEntityContext(hass: HomeAssistant, entityId: string): EntityContext | null {
     const entity = hass.entities?.[entityId];

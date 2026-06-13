@@ -9,7 +9,7 @@
  * Pure and DOM-free for independent unit testing (see lightLikeSwitch.test.ts).
  */
 
-import type { EntityState } from '../../types/core.js';
+import type { EntityState } from '../../../types/core.js';
 
 /** mdi icons that signal a switch is really a light. */
 const LIGHT_ICONS = new Set([

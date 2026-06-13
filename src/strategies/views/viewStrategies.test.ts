@@ -8,12 +8,14 @@ import { describe, it, expect, beforeAll } from 'vitest';
 
 // Side-effect imports register the elements.
 import './homeLightsView.js';
+import './homeClimateView.js';
 import './homeMediaPlayersView.js';
 import './homeAreaView.js';
 import type { HomeAssistant } from '../../types/cards.js';
 
 const TAGS = [
     'll-strategy-view-home-lights',
+    'll-strategy-view-home-climate',
     'll-strategy-view-home-media-players',
     'll-strategy-view-home-area',
 ];
@@ -42,6 +44,20 @@ describe('view strategy registration', () => {
         expect(view).toMatchObject({ path: 'lights', type: 'sections' });
         const tiles = view.sections[0].cards.filter((c: any) => c.type === 'tile');
         expect(tiles).toHaveLength(1);
+    });
+
+    it('home-climate generate returns a climate sections view', async () => {
+        const hass = {
+            entities: { 'climate.kitchen': { entity_id: 'climate.kitchen', area_id: 'kitchen' } },
+            devices: {},
+            areas: { kitchen: { area_id: 'kitchen', name: 'Kitchen' } },
+            states: { 'climate.kitchen': { state: 'heat', attributes: { friendly_name: 'Kitchen' } } },
+        } as unknown as HomeAssistant;
+
+        const view = await generatorFor('ll-strategy-view-home-climate')({ type: 'custom:home-climate' }, hass);
+        expect(view).toMatchObject({ path: 'climate', type: 'sections' });
+        const thermostats = view.sections[0].cards.filter((c: any) => c.type === 'thermostat');
+        expect(thermostats).toHaveLength(1);
     });
 
     it('home-area generate returns an empty sections view for an unknown area', async () => {

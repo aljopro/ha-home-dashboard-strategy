@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildLightsView, collectLightEntityIds, groupLightsByArea } from './lightsView.js';
-import type { HomeAssistant } from '../../types/cards.js';
-import type { HeadingCard } from '../../types/cards.js';
+import type { HomeAssistant } from '../../../types/cards.js';
+import type { HeadingCard } from '../../../types/cards.js';
 
 /**
  * Minimal hass with three areas and a mix of lights / light-like switches /

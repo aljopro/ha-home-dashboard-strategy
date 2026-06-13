@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildSummaryCard, buildSummaryCards } from './summaryCards.js';
-import type { DomainSummaryCard } from '../../types/cards.js';
+import type { DomainSummaryCard } from '../../../types/cards.js';
 
 describe('summaryCards', () => {
     describe('buildSummaryCard', () => {

@@ -3,9 +3,9 @@
  * Takes area + entities + domain info, returns a LovelaceView.
  */
 
-import type { HomeAssistant, LovelaceView, SectionsView, StrategyCard } from '../../types/cards.js';
-import { EntityDomainInfo, Entity, Area, EntityContext } from '../../types/core.js';
-import { filterEntities, getEntityAreaId } from './entityFilters.js';
+import type { HomeAssistant, LovelaceView, SectionsView, StrategyCard } from '../../../types/cards.js';
+import { EntityDomainInfo, Entity, Area, EntityContext } from '../../../types/core.js';
+import { filterEntities, getEntityAreaId } from '../entities/entityFilters.js';
 
 interface LovelaceCard {
     type: string;

@@ -1,16 +1,15 @@
 /**
- * Pure builder for the Lights subview (`custom:home-lights`).
+ * Pure builder for the Climate subview (`custom:home-climate`).
  *
- * Lists every `light.*` entity plus light-like `switch.*` entities (see
- * isLightLikeSwitch), grouped by area, as tile cards. Entities with no area are
- * collected under a trailing "Other lights" group. Returned as a sections view
- * body; the dashboard supplies the title/path/subview base.
+ * Lists every `climate.*` entity, grouped by area, as thermostat cards.
+ * Entities with no area are collected under a trailing "Other climate" group.
+ * Returned as a sections view body; the dashboard supplies the
+ * title/path/subview base. Mirrors the Lights view builder (see lightsView.ts).
  */
 
-import type { HeadingCard, HomeAssistant, SectionsView, StrategyCard, TileCard } from '../../types/cards.js';
-import type { Area, HassStates } from '../../types/core.js';
-import { getEntityAreaId, isEntityVisible } from './entityFilters.js';
-import { isLightLikeSwitch } from './lightLikeSwitch.js';
+import type { HeadingCard, HomeAssistant, SectionsView, StrategyCard, ThermostatCard } from '../../../types/cards.js';
+import type { Area, HassStates } from '../../../types/core.js';
+import { getEntityAreaId, isEntityVisible } from '../entities/entityFilters.js';
 
 /** Display name for an entity: friendly_name → registry name → entity_id. */
 function displayName(hass: HomeAssistant, entityId: string): string {
@@ -20,32 +19,32 @@ function displayName(hass: HomeAssistant, entityId: string): string {
 }
 
 /**
- * All light entity_ids: every `light.*`, plus `switch.*` entities that are
- * light-like. Sorted alphabetically by display name.
+ * All climate entity_ids: every visible `climate.*`. Sorted alphabetically by
+ * display name.
  */
-export function collectLightEntityIds(hass: HomeAssistant): string[] {
+export function collectClimateEntityIds(hass: HomeAssistant): string[] {
     const states: HassStates = hass.states ?? {};
     return Object.keys(states)
-        .filter((id) => id.startsWith('light.') || isLightLikeSwitch(id, states[id]))
+        .filter((id) => id.startsWith('climate.'))
         .filter((id) => isEntityVisible(hass.entities?.[id]))
         .sort((a, b) => displayName(hass, a).localeCompare(displayName(hass, b)));
 }
 
-interface LightGroup {
+interface ClimateGroup {
     /** null for entities with no resolvable area. */
     area: Area | null;
     entityIds: string[];
 }
 
 /**
- * Group light entity_ids by area. Real areas come first (sorted by name); the
+ * Group climate entity_ids by area. Real areas come first (sorted by name); the
  * unassigned group (area === null) is appended last when non-empty.
  */
-export function groupLightsByArea(hass: HomeAssistant): LightGroup[] {
+export function groupClimateByArea(hass: HomeAssistant): ClimateGroup[] {
     const byArea = new Map<string, string[]>();
     const unassigned: string[] = [];
 
-    for (const entityId of collectLightEntityIds(hass)) {
+    for (const entityId of collectClimateEntityIds(hass)) {
         const entity = hass.entities?.[entityId];
         const areaId = entity ? getEntityAreaId(entity, hass.devices) : null;
         if (areaId && hass.areas?.[areaId]) {
@@ -55,7 +54,7 @@ export function groupLightsByArea(hass: HomeAssistant): LightGroup[] {
         }
     }
 
-    const groups: LightGroup[] = [...byArea.entries()]
+    const groups: ClimateGroup[] = [...byArea.entries()]
         .map(([areaId, entityIds]) => ({ area: hass.areas![areaId], entityIds }))
         .sort((a, b) => (a.area!.name || '').localeCompare(b.area!.name || ''));
 
@@ -66,29 +65,29 @@ export function groupLightsByArea(hass: HomeAssistant): LightGroup[] {
     return groups;
 }
 
-/** Build the subtitle heading + tile cards for one light group. */
-function buildGroupCards(group: LightGroup): StrategyCard[] {
+/** Build the subtitle heading + thermostat cards for one climate group. */
+function buildGroupCards(group: ClimateGroup): StrategyCard[] {
     const heading: HeadingCard = {
         type: 'heading',
         heading_style: 'subtitle',
-        heading: group.area?.name ?? 'Other lights',
+        heading: group.area?.name ?? 'Other climate',
     };
-    const tiles: TileCard[] = group.entityIds.map((entity) => ({ type: 'tile', entity }));
-    return [heading, ...tiles];
+    const thermostats: ThermostatCard[] = group.entityIds.map((entity) => ({ type: 'thermostat', entity }));
+    return [heading, ...thermostats];
 }
 
 /**
- * Build the complete Lights view body.
+ * Build the complete Climate view body.
  */
-export function buildLightsView(hass: HomeAssistant): SectionsView {
-    const groups = groupLightsByArea(hass);
+export function buildClimateView(hass: HomeAssistant): SectionsView {
+    const groups = groupClimateByArea(hass);
     const cards = groups.flatMap(buildGroupCards);
 
     return {
-        title: 'Lights',
-        path: 'lights',
+        title: 'Climate',
+        path: 'climate',
         subview: true,
-        icon: 'mdi:lightbulb-group',
+        icon: 'mdi:thermostat',
         type: 'sections',
         max_columns: 2,
         sections: [

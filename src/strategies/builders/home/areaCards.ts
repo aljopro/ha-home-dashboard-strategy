@@ -3,8 +3,8 @@
  * Takes config + entities + areas, returns array of area cards (no side effects).
  */
 
-import type { StrategyCard } from '../../types/cards.js';
-import { Area, EntityContext } from '../../types/core.js';
+import type { StrategyCard } from '../../../types/cards.js';
+import { Area, EntityContext } from '../../../types/core.js';
 
 /**
  * Build a single area card with heading, area controls, and navigation.

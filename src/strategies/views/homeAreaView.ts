@@ -6,8 +6,8 @@
  * the pure buildAreaView builder.
  */
 
-import { buildAreaView } from '../builders/areaViews.js';
-import { getEntityContext } from '../builders/getEntityContext.js';
+import { buildAreaView } from '../builders/subviews/areaViews.js';
+import { getEntityContext } from '../builders/entities/getEntityContext.js';
 import { DEFAULT_ENTITY_DOMAINS } from '../entityDomains.js';
 import type { EntityContext } from '../../types/core.js';
 import { registerViewStrategy } from './registerViewStrategy.js';

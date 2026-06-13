@@ -13,7 +13,7 @@ import {
     hasDomain,
     isEntityVisible,
 } from './entityFilters.js';
-import type { Entity, Area, EntityDomainInfo } from '../../types/core.js';
+import type { Entity, Area, EntityDomainInfo } from '../../../types/core.js';
 
 function makeMinimalHass(entityDefs: Array<{ entityId: string; deviceId?: string; areaId?: string }>) {
     const h: any = { entities: {}, states: {}, devices: {}, areas: {} };

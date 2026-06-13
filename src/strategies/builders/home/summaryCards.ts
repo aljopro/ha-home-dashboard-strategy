@@ -7,8 +7,8 @@
  * not HA's built-in panels. See memory: project-summary-card-architecture.
  */
 
-import type { DomainSummaryCard, StrategyCard } from '../../types/cards.js';
-import { hasDomain } from './entityFilters.js';
+import type { DomainSummaryCard, StrategyCard } from '../../../types/cards.js';
+import { hasDomain } from '../entities/entityFilters.js';
 
 /**
  * Per-domain accent color for the summary icon, shown only while the domain is

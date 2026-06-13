@@ -6,8 +6,8 @@
  * Delegates to the pure mediaPlayersView builders.
  */
 
-import { buildMediaPlayersView, groupMediaPlayersByArea } from '../builders/mediaPlayersView.js';
-import { isEntityVisible } from '../builders/entityFilters.js';
+import { buildMediaPlayersView, groupMediaPlayersByArea } from '../builders/subviews/mediaPlayersView.js';
+import { isEntityVisible } from '../builders/entities/entityFilters.js';
 import type { Area, Entity } from '../../types/core.js';
 import { registerViewStrategy } from './registerViewStrategy.js';
 

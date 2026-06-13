@@ -5,8 +5,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildAreaCard, buildAreaCardsSection, getAreaIdsFromCards } from './areaCards.js';
-import type { AreaCard, StrategyCard } from '../../types/cards.js';
-import { Area } from '../../types/core.js';
+import type { AreaCard, StrategyCard } from '../../../types/cards.js';
+import { Area } from '../../../types/core.js';
 
 describe('areaCards', () => {
     describe('buildAreaCard', () => {

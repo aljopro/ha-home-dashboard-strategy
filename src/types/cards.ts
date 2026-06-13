@@ -161,9 +161,27 @@ export interface TileCard extends LovelaceCardConfig {
 }
 
 /**
+ * Thermostat card for controlling a single climate entity (temperature dial +
+ * HVAC modes). References HA frontend ThermostatCardConfig.
+ */
+export interface ThermostatCard extends LovelaceCardConfig {
+    type: 'thermostat';
+    entity: string;
+    name?: string;
+    theme?: string;
+}
+
+/**
  * Union type of all supported card types in this strategy.
  */
-export type StrategyCard = HeadingCard | AreaCard | EntitiesCard | MediaControlCard | DomainSummaryCard | TileCard;
+export type StrategyCard =
+    | HeadingCard
+    | AreaCard
+    | EntitiesCard
+    | MediaControlCard
+    | DomainSummaryCard
+    | TileCard
+    | ThermostatCard;
 
 // ============================================================================
 // Section & View Types

@@ -22,17 +22,17 @@ import {
     filterEntitiesByDomainAndExclusions,
     normalizeFilterArray,
     sortEntitiesAlphabetically,
-} from './builders/entityFilters.js';
-import { getEntityContext } from './builders/getEntityContext.js';
-import { buildSummaryCards } from './builders/summaryCards.js';
+} from './builders/entities/entityFilters.js';
+import { getEntityContext } from './builders/entities/getEntityContext.js';
+import { buildSummaryCards } from './builders/home/summaryCards.js';
 import {
     buildHomeView,
     buildFavoritesSection,
     buildSummarySection,
     buildAreaCardsGridSection,
-} from './builders/viewAssembly.js';
+} from './builders/home/viewAssembly.js';
 import { Area, EntityContext } from '../types/core.js';
-import { buildAreaCardsSection } from './builders/areaCards.js';
+import { buildAreaCardsSection } from './builders/home/areaCards.js';
 import { DEFAULT_ENTITY_DOMAINS } from './entityDomains.js';
 
 // Side-effect import: registers the graphical config editor element.
@@ -42,9 +42,10 @@ import './editor/roomsSectionsEditor.js';
 import './cards/domainSummaryCard.js';
 
 // Side-effect imports: register the deferred view strategies referenced by the
-// views this dashboard generates (custom:home-lights / home-media-players /
-// home-area → ll-strategy-view-home-*).
+// views this dashboard generates (custom:home-lights / home-climate /
+// home-media-players / home-area → ll-strategy-view-home-*).
 import './views/homeLightsView.js';
+import './views/homeClimateView.js';
 import './views/homeMediaPlayersView.js';
 import './views/homeAreaView.js';
 
@@ -150,6 +151,15 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
         },
     };
 
+    const climateView = {
+        title: 'Climate',
+        path: 'climate',
+        subview: true,
+        strategy: {
+            type: 'custom:home-climate',
+        },
+    };
+
     const mediaPlayersView = {
         title: 'Media Players',
         path: 'media-players',
@@ -191,7 +201,7 @@ export async function generateViews(config: DashboardStrategyConfig, hass: HomeA
     const homeView = buildHomeView(homeViewSections as Parameters<typeof buildHomeView>[0], config);
 
     return {
-        views: [homeView, ...areaViews, lightsView, mediaPlayersView],
+        views: [homeView, ...areaViews, lightsView, climateView, mediaPlayersView],
     };
 }
 

@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { getEntityContext } from './getEntityContext.js';
-import type { HomeAssistant } from '../../types/cards.js';
+import type { HomeAssistant } from '../../../types/cards.js';
 
 function hass(entity: Record<string, unknown>): HomeAssistant {
     const id = entity.entity_id as string;

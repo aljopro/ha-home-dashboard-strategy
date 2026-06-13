@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { isLightLikeSwitch } from './lightLikeSwitch.js';
-import type { EntityState } from '../../types/core.js';
+import type { EntityState } from '../../../types/core.js';
 
 function state(attributes: Record<string, unknown>, s = 'off'): EntityState {
     return { state: s, attributes };
