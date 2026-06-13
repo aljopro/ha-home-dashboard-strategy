@@ -81,7 +81,16 @@ export interface Entity {
     device_id?: string | null;
     platform?: string;
     icon?: string;
+    /**
+     * Whether the entity is hidden. This is the field carried by the frontend's
+     * lightweight entity registry (`hass.entities`, an EntityRegistryDisplayEntry)
+     * — equivalent to HA's `is_hidden_entity` template. The full registry's
+     * `hidden_by`/`disabled_by` are NOT present on these display entries.
+     */
+    hidden?: boolean;
+    /** Only on full registry entries (config/entity_registry/list), not hass.entities. */
     disabled_by?: string | null;
+    /** Only on full registry entries (config/entity_registry/list), not hass.entities. */
     hidden_by?: string | null;
     device_class?: string | null;
     entity_category?: EntityCategory | null;

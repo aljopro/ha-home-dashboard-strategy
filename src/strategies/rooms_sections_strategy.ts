@@ -28,95 +28,29 @@ import { buildSummaryCards } from './builders/summaryCards.js';
 import {
     buildHomeView,
     buildFavoritesSection,
-    buildSuggestedSection,
     buildSummarySection,
     buildAreaCardsGridSection,
 } from './builders/viewAssembly.js';
-import { EntityDomainInfo, EntityFilter, Area, Entity, EntityContext } from '../types/core.js';
+import { Area, EntityContext } from '../types/core.js';
 import { buildAreaCardsSection } from './builders/areaCards.js';
+import { DEFAULT_ENTITY_DOMAINS } from './entityDomains.js';
 
 // Side-effect import: registers the graphical config editor element.
 import './editor/roomsSectionsEditor.js';
 
-/**
- * Default entity domains to include in the strategy.
- */
+// Side-effect import: registers the ll-domain-summary-card custom element.
+import './cards/domainSummaryCard.js';
 
-export const mediaPlayerEntityFilters: EntityFilter[] = [{ domain: 'media_player', entity_category: 'none' }];
-export const lightEntityFilters: EntityFilter[] = [{ domain: 'light', entity_category: 'none' }];
-export const switchEntityFilters: EntityFilter[] = [
-    {
-        domain: 'switch',
-        device_class: ['outlet', 'switch'],
-    },
-];
-export const coverEntityFilters: EntityFilter[] = [
-    {
-        domain: 'cover',
-        device_class: ['awning', 'blind', 'curtain', 'shade', 'shutter', 'window', 'none'],
-    },
-    {
-        domain: 'binary_sensor',
-        device_class: ['window'],
-    },
-];
-export const climateEntityFilters: EntityFilter[] = [
-    { domain: 'climate' },
-    { domain: 'humidifier' },
-    { domain: 'fan' },
-    { domain: 'water_heater' },
-];
-export const securityEntityFilters: EntityFilter[] = [
-    {
-        domain: 'camera',
-    },
-    {
-        domain: 'alarm_control_panel',
-    },
-    {
-        domain: 'lock',
-    },
-    {
-        domain: 'cover',
-        device_class: ['door', 'garage', 'gate'],
-    },
-    {
-        domain: 'binary_sensor',
-        device_class: [
-            // Locks
-            'lock',
-            // Openings
-            'door',
-            'window',
-            'garage_door',
-            'opening',
-            // Safety
-            'carbon_monoxide',
-            'gas',
-            'moisture',
-            'safety',
-            'smoke',
-            'tamper',
-        ],
-    },
-    // We also want the tamper sensors when they are diagnostic
-    {
-        domain: 'binary_sensor',
-        device_class: ['tamper'],
-        entity_category: 'diagnostic',
-    },
-];
+// Side-effect imports: register the deferred view strategies referenced by the
+// views this dashboard generates (custom:home-lights / home-media-players /
+// home-area → ll-strategy-view-home-*).
+import './views/homeLightsView.js';
+import './views/homeMediaPlayersView.js';
+import './views/homeAreaView.js';
 
-const DEFAULT_ENTITY_DOMAINS: EntityDomainInfo[] = [
-    { id: 'light', name: 'Lights', icon: 'mdi:lamps', filter: lightEntityFilters },
-    { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch', filter: switchEntityFilters },
-    { id: 'cover', name: 'Shades', icon: 'mdi:window-shutter', filter: coverEntityFilters },
-    { id: 'climate', name: 'Climate', icon: 'mdi:thermostat', filter: climateEntityFilters },
-    { id: 'camera', name: 'Security', icon: 'mdi:security', filter: securityEntityFilters },
-    { id: 'media_player', name: 'Media Players', icon: 'mdi:multimedia', filter: mediaPlayerEntityFilters },
-];
+const SUGGESTED_LIMIT = 8;
 
-export function generateViews(config: DashboardStrategyConfig, hass: HomeAssistant): LovelaceConfig {
+export async function generateViews(config: DashboardStrategyConfig, hass: HomeAssistant): Promise<LovelaceConfig> {
     // Extract configuration
     const excludedEntities = config.excluded_entities || [];
     const basePath = hass?.panelUrl || '';
@@ -199,40 +133,65 @@ export function generateViews(config: DashboardStrategyConfig, hass: HomeAssista
             path: area.area_id,
             subview: true,
             strategy: {
-                type: 'home-area',
+                type: 'custom:home-area',
                 area: area.area_id,
             },
         };
     });
 
-    // Step 4: Build media players view
+    // Step 4: Build deferred domain subviews (resolved lazily on navigation).
+
+    const lightsView = {
+        title: 'Lights',
+        path: 'lights',
+        subview: true,
+        strategy: {
+            type: 'custom:home-lights',
+        },
+    };
 
     const mediaPlayersView = {
         title: 'Media Players',
         path: 'media-players',
         subview: true,
         strategy: {
-            type: 'home-media-players',
+            type: 'custom:home-media-players',
         },
     };
 
     // Step 5: Build summary cards
-    const summaryCards = buildSummaryCards(allEntityIds);
+    const summaryCards = buildSummaryCards(allEntityIds, basePath);
 
-    // Step 6: Build home view sections
-    const favoritesSection = buildFavoritesSection(favoriteEntityIds);
-    const suggestedSection = buildSuggestedSection(config.suggested ?? false);
+    // Step 6: Fetch usage-prediction data for suggested section
+    let suggestedEntityIds: string[] = [];
+    if (config.suggested && hass?.config?.components?.includes('usage_prediction') && hass.callWS) {
+        try {
+            const result = await hass.callWS<{ entities: string[] }>({ type: 'usage_prediction/common_control' });
+            suggestedEntityIds = result.entities
+                .filter((id) => hass.states?.[id] !== undefined)
+                .filter((id) => !favoriteEntityIds.includes(id))
+                .slice(0, SUGGESTED_LIMIT);
+        } catch {
+            // usage_prediction unavailable — section stays empty
+        }
+    }
+
+    // Step 7: Build home view sections
+    // Favorites and suggestions are combined into one section: favorites pinned
+    // first, then predicted entities fill in after them.
+    const combinedEntityIds = [...favoriteEntityIds, ...suggestedEntityIds];
+    const favoritesSection = buildFavoritesSection(combinedEntityIds);
     const summarySection = buildSummarySection(summaryCards);
     const areaCardsSection = buildAreaCardsGridSection(areaCards);
-    const homeViewSections = [favoritesSection, suggestedSection, summarySection, areaCardsSection].filter(
+    const homeViewSections = [favoritesSection, summarySection, areaCardsSection].filter(
         (s) => s !== null
     );
 
-    // Step 7: Build and return complete view config
+    // Step 8: Build and return complete view config
     const homeView = buildHomeView(homeViewSections as Parameters<typeof buildHomeView>[0], config);
 
     return {
-        views: [homeView, ...areaViews, mediaPlayersView],
+        views: [homeView, ...areaViews, lightsView, mediaPlayersView],
     };
 }
 

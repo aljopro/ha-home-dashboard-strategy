@@ -48,8 +48,14 @@ strategy:
 
 - `custom:` prefix → HA looks for a custom element.
 - Dashboard scope → HA prepends `ll-strategy-dashboard-`.
-- Sub-strategies referenced from generated views (e.g. `type: home-area`) resolve
-  to `ll-strategy-view-home-area` and must be registered the same way.
+- Sub-strategies referenced from generated views **must also use the `custom:`
+  prefix** — e.g. `strategy: { type: 'custom:home-area' }` resolves to
+  `ll-strategy-view-home-area` and must be registered the same way. A bare type
+  (`type: home-area`) does **not** resolve: HA's `getStrategyTag` only accepts a
+  built-in type or one starting with `custom:`, otherwise it throws "Unknown
+  strategy". Use `registerViewStrategy(name, generate)`
+  ([src/strategies/views/registerViewStrategy.ts](../src/strategies/views/registerViewStrategy.ts))
+  which registers `ll-strategy-view-<name>` with a static `generate`.
 
 **Registration rule — register idempotently, at module load, without decorators:**
 
@@ -239,8 +245,9 @@ a thin `StragegyView` that defers to a **sub-strategy**:
 { type: 'sections', title: 'Home', path: 'home', sections: [...] }
 
 // Deferred view (HA will invoke a view-scope sub-strategy on demand):
+// NOTE the `custom:` prefix — required for the type to resolve.
 { title: area.name, path: area.area_id, subview: true,
-  strategy: { type: 'home-area', area: area.area_id } }
+  strategy: { type: 'custom:home-area', area: area.area_id } }
 ```
 
 **Prefer deferred sub-strategies for per-area / per-domain views.** They are

@@ -11,6 +11,7 @@ import {
     sortAreasAlphabetically,
     getAreaDomainEntities,
     hasDomain,
+    isEntityVisible,
 } from './entityFilters.js';
 import type { Entity, Area, EntityDomainInfo } from '../../types/core.js';
 
@@ -298,6 +299,30 @@ describe('entityFilters', () => {
 
         it('returns false for empty array', () => {
             expect(hasDomain([], 'light')).toBe(false);
+        });
+    });
+
+    describe('isEntityVisible', () => {
+        it('treats a plain registry entry as visible', () => {
+            expect(isEntityVisible({ entity_id: 'light.a' } as Entity)).toBe(true);
+        });
+
+        it('treats a state-only entity (no registry entry) as visible', () => {
+            expect(isEntityVisible(undefined)).toBe(true);
+        });
+
+        it('hides entities whose display registry hidden flag is set', () => {
+            // `hidden: true` is the real field on hass.entities (is_hidden_entity)
+            expect(isEntityVisible({ entity_id: 'switch.x', hidden: true } as Entity)).toBe(false);
+        });
+
+        it('also honors hidden_by on full registry entries', () => {
+            expect(isEntityVisible({ entity_id: 'switch.x', hidden_by: 'integration' } as Entity)).toBe(false);
+            expect(isEntityVisible({ entity_id: 'switch.x', hidden_by: 'user' } as Entity)).toBe(false);
+        });
+
+        it('hides disabled entities', () => {
+            expect(isEntityVisible({ entity_id: 'switch.x', disabled_by: 'user' } as Entity)).toBe(false);
         });
     });
 });

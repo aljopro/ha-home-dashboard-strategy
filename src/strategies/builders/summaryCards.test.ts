@@ -5,28 +5,40 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildSummaryCard, buildSummaryCards } from './summaryCards.js';
-import type { HomeSummaryCard } from '../../types/cards.js';
+import type { DomainSummaryCard } from '../../types/cards.js';
 
 describe('summaryCards', () => {
     describe('buildSummaryCard', () => {
         it('builds summary card with correct structure', () => {
-            const result = buildSummaryCard('light', '/light?historyBack=1');
+            const result = buildSummaryCard('light', 'Lights', 'mdi:lightbulb-group', '/lovelace/lights');
 
             expect(result).toMatchObject({
-                type: 'home-summary',
-                summary: 'light',
-                tap_action: {
-                    action: 'navigate',
-                    navigation_path: '/light?historyBack=1',
-                },
+                type: 'custom:ll-domain-summary-card',
+                domain: 'light',
+                label: 'Lights',
+                icon: 'mdi:lightbulb-group',
+                navigation_path: '/lovelace/lights',
                 grid_options: { columns: 12 },
             });
         });
 
-        it('builds media_players card with correct path', () => {
-            const result = buildSummaryCard('media_players', '/media-players');
+        it('builds media card with correct path', () => {
+            const result = buildSummaryCard('media_player', 'Media', 'mdi:multimedia', '/lovelace/media-players');
 
-            expect((result as HomeSummaryCard)?.tap_action?.navigation_path).toBe('/media-players');
+            expect(result.navigation_path).toBe('/lovelace/media-players');
+        });
+
+        it('assigns a per-domain accent color for known domains', () => {
+            expect(buildSummaryCard('light', 'Lights', 'mdi:lightbulb-group', '/lights').color).toBe(
+                'var(--amber-color, #ffc107)'
+            );
+            expect(buildSummaryCard('security', 'Security', 'mdi:shield-home', '/security').color).toBe(
+                'var(--blue-grey-color, #607d8b)'
+            );
+        });
+
+        it('omits color for domains without a palette entry', () => {
+            expect(buildSummaryCard('vacuum', 'Vacuums', 'mdi:robot-vacuum', '/vacuum').color).toBeUndefined();
         });
     });
 
@@ -44,35 +56,35 @@ describe('summaryCards', () => {
         it('adds light card if lights exist', () => {
             const result = buildSummaryCards(['light.lr_1', 'light.lr_2']);
 
-            const lightCards = result.filter((c) => (c as HomeSummaryCard).summary === 'light');
+            const lightCards = result.filter((c) => (c as DomainSummaryCard).domain === 'light');
             expect(lightCards).toHaveLength(1);
         });
 
         it('adds climate card if climate entities exist', () => {
             const result = buildSummaryCards(['climate.thermostat']);
 
-            const climateCards = result.filter((c) => (c as HomeSummaryCard).summary === 'climate');
+            const climateCards = result.filter((c) => (c as DomainSummaryCard).domain === 'climate');
             expect(climateCards).toHaveLength(1);
         });
 
         it('adds security card if alarm_control_panel exists', () => {
             const result = buildSummaryCards(['alarm_control_panel.home']);
 
-            const securityCards = result.filter((c) => (c as HomeSummaryCard).summary === 'security');
+            const securityCards = result.filter((c) => (c as DomainSummaryCard).domain === 'security');
             expect(securityCards).toHaveLength(1);
         });
 
         it('adds security card if binary_sensor exists', () => {
             const result = buildSummaryCards(['binary_sensor.motion']);
 
-            const securityCards = result.filter((c) => (c as HomeSummaryCard).summary === 'security');
+            const securityCards = result.filter((c) => (c as DomainSummaryCard).domain === 'security');
             expect(securityCards).toHaveLength(1);
         });
 
-        it('adds media_players card if media_player entities exist', () => {
+        it('adds media card if media_player entities exist', () => {
             const result = buildSummaryCards(['media_player.speaker']);
 
-            const mediaCards = result.filter((c) => (c as HomeSummaryCard).summary === 'media_players');
+            const mediaCards = result.filter((c) => (c as DomainSummaryCard).domain === 'media_player');
             expect(mediaCards).toHaveLength(1);
         });
 
@@ -82,7 +94,21 @@ describe('summaryCards', () => {
             const result = buildSummaryCards(entityIds);
 
             expect(result.length).toBe(5); // heading + 4 summary cards
-            expect(result.filter((c) => c.type === 'home-summary')).toHaveLength(4);
+            expect(result.filter((c) => c.type === 'custom:ll-domain-summary-card')).toHaveLength(4);
+        });
+
+        it('prefixes navigation paths with basePath', () => {
+            const result = buildSummaryCards(['light.lr'], 'lovelace-home');
+
+            const lightCard = result.find((c) => (c as DomainSummaryCard).domain === 'light') as DomainSummaryCard;
+            expect(lightCard.navigation_path).toBe('/lovelace-home/lights');
+        });
+
+        it('builds root-relative paths when basePath omitted', () => {
+            const result = buildSummaryCards(['light.lr']);
+
+            const lightCard = result.find((c) => (c as DomainSummaryCard).domain === 'light') as DomainSummaryCard;
+            expect(lightCard.navigation_path).toBe('/lights');
         });
 
         it('returns only heading if no matching domains', () => {
@@ -102,7 +128,7 @@ describe('summaryCards', () => {
         it('handles duplicate domain entities', () => {
             const result = buildSummaryCards(['light.lr_1', 'light.lr_2', 'light.br_1']);
 
-            const lightCards = result.filter((c) => (c as HomeSummaryCard).summary === 'light');
+            const lightCards = result.filter((c) => (c as DomainSummaryCard).domain === 'light');
             expect(lightCards).toHaveLength(1); // only one light card despite multiple lights
         });
     });

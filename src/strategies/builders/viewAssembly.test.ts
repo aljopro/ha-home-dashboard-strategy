@@ -155,47 +155,73 @@ describe('viewAssembly', () => {
 
     describe('buildSuggestedSection', () => {
         it('returns null when disabled', () => {
-            expect(buildSuggestedSection(false)).toBeNull();
+            expect(buildSuggestedSection(false, ['light.lr'])).toBeNull();
         });
 
-        it('returns null when enabled (no usage data yet)', () => {
-            // Plumbed end-to-end but intentionally inert until usage data exists.
+        it('returns null when enabled but no predicted entities', () => {
+            expect(buildSuggestedSection(true, [])).toBeNull();
+        });
+
+        it('returns null when enabled with no argument (default empty)', () => {
             expect(buildSuggestedSection(true)).toBeNull();
+        });
+
+        it('builds suggested section with tile cards when enabled and entities provided', () => {
+            const result = buildSuggestedSection(true, ['light.lr', 'switch.fan']);
+
+            expect(result).toBeDefined();
+            expect(result?.type).toBe('grid');
+            expect(result?.column_span).toBe(4);
+            // heading + 2 tile cards
+            expect(result?.cards).toHaveLength(3);
+        });
+
+        it('includes heading card', () => {
+            const result = buildSuggestedSection(true, ['light.lr']);
+
+            expect(result?.cards?.[0]).toMatchObject({
+                type: 'heading',
+                heading: 'Suggested',
+                heading_style: 'title',
+            });
+        });
+
+        it('renders each entity as a tile card with entity picture', () => {
+            const entityIds = ['light.lr', 'switch.fan'];
+            const result = buildSuggestedSection(true, entityIds);
+
+            expect(result?.cards?.[1]).toMatchObject({ type: 'tile', entity: 'light.lr', show_entity_picture: true });
+            expect(result?.cards?.[2]).toMatchObject({ type: 'tile', entity: 'switch.fan', show_entity_picture: true });
         });
     });
 
     describe('buildFavoritesSection', () => {
-        it('builds favorites section with entities', () => {
+        it('builds favorites section with tile cards', () => {
             const result = buildFavoritesSection(['light.lr', 'switch.fan']);
 
             expect(result).toBeDefined();
             expect(result?.type).toBe('grid');
             expect(result?.column_span).toBe(4);
-            expect(result?.cards).toHaveLength(2); // heading + entities card
+            // heading + 2 tile cards
+            expect(result?.cards).toHaveLength(3);
         });
 
         it('includes heading card', () => {
             const result = buildFavoritesSection(['light.lr']);
 
-            const heading = result?.cards?.[0];
-            expect(heading).toMatchObject({
+            expect(result?.cards?.[0]).toMatchObject({
                 type: 'heading',
                 heading: 'Favorites',
                 heading_style: 'title',
             });
         });
 
-        it('includes entities card with favorites', () => {
+        it('renders each entity as a tile card with entity picture', () => {
             const favoriteIds = ['light.lr', 'switch.fan'];
             const result = buildFavoritesSection(favoriteIds);
 
-            const entitiesCard = result?.cards?.[1];
-            expect(entitiesCard).toMatchObject({
-                type: 'entities',
-                title: 'Favorites',
-                entities: favoriteIds,
-                show_header_toggle: false,
-            });
+            expect(result?.cards?.[1]).toMatchObject({ type: 'tile', entity: 'light.lr', show_entity_picture: true });
+            expect(result?.cards?.[2]).toMatchObject({ type: 'tile', entity: 'switch.fan', show_entity_picture: true });
         });
 
         it('returns null if no favorites', () => {
@@ -213,8 +239,8 @@ describe('viewAssembly', () => {
                     heading: 'Summaries',
                     heading_style: 'title',
                 },
-                { type: 'home-summary', summary: 'light' },
-                { type: 'home-summary', summary: 'climate' },
+                { type: 'custom:ll-domain-summary-card', domain: 'light', label: 'Lights' },
+                { type: 'custom:ll-domain-summary-card', domain: 'climate', label: 'Climate' },
             ];
 
             const result = buildSummarySection(summaryCards);

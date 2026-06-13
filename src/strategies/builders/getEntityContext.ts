@@ -7,6 +7,14 @@ export function getEntityContext(hass: HomeAssistant, entityId: string): EntityC
         return null;
     }
 
+    // Respect registry visibility: hidden (e.g. "Hidden by Integration") or
+    // disabled entities are excluded from the dashboard. `hass.entities` carries
+    // the boolean `hidden` field; `hidden_by`/`disabled_by` are honored too for
+    // full registry entries. See isEntityVisible.
+    if (entity.hidden || entity.hidden_by || entity.disabled_by) {
+        return null;
+    }
+
     const state = hass.states?.[entityId];
     if (!state) {
         return null;

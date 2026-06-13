@@ -127,20 +127,43 @@ export interface MediaControlCard extends LovelaceCardConfig {
 }
 
 /**
- * Home summary card showing domain-wide status.
- * Custom card type for dashboard strategies.
+ * Domain summary card showing aggregate status for a domain (or pseudo-domain
+ * like `security`). Rendered by our own `ll-domain-summary-card` LitElement
+ * (see src/strategies/cards/domainSummaryCard.ts) — never HA's internal
+ * `home-summary` card type. Tapping navigates to our own subview.
  */
-export interface HomeSummaryCard extends LovelaceCardConfig {
-    type: 'home-summary';
-    summary: 'light' | 'climate' | 'security' | 'media_players' | string;
-    tap_action?: ActionConfig;
+export interface DomainSummaryCard extends LovelaceCardConfig {
+    type: 'custom:ll-domain-summary-card';
+    /** HA domain (e.g. `light`) or pseudo-domain (e.g. `security`) to summarize. */
+    domain: string;
+    /** Display label, e.g. "Lights". Falls back to `domain` when omitted. */
+    label?: string;
+    /** mdi icon name, e.g. "mdi:lightbulb-group". */
+    icon?: string;
+    /** Optional accent color for the icon (CSS color or theme var). */
+    color?: string;
+    /** Dashboard path navigated to on tap, e.g. "/lovelace/lights". */
+    navigation_path?: string;
     grid_options?: { columns?: number };
+}
+
+/**
+ * Tile card for displaying a single entity with optional picture.
+ * Aligns with HA frontend TileCardConfig.
+ */
+export interface TileCard extends LovelaceCardConfig {
+    type: 'tile';
+    entity: string;
+    show_entity_picture?: boolean;
+    name?: string;
+    icon?: string;
+    color?: string;
 }
 
 /**
  * Union type of all supported card types in this strategy.
  */
-export type StrategyCard = HeadingCard | AreaCard | EntitiesCard | MediaControlCard | HomeSummaryCard;
+export type StrategyCard = HeadingCard | AreaCard | EntitiesCard | MediaControlCard | DomainSummaryCard | TileCard;
 
 // ============================================================================
 // Section & View Types
@@ -210,6 +233,13 @@ export interface HomeAssistant {
     states?: HassStates;
     panelUrl?: string;
     localize?: (key: string, options?: Record<string, unknown>) => string;
+    /** Send a WebSocket command and await the response. Used for usage_prediction etc. */
+    callWS?: <T>(message: Record<string, unknown>) => Promise<T>;
+    /** HA core config, including the list of loaded integration components. */
+    config?: {
+        components?: string[];
+        [key: string]: unknown;
+    };
     [key: string]: unknown;
 }
 

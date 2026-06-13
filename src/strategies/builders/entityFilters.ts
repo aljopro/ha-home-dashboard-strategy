@@ -9,6 +9,23 @@ import { ensureArray } from '../../utils/ensure-array.js';
 import { getEntityContext } from './getEntityContext.js';
 
 /**
+ * Whether an entity registry entry should be shown on the dashboard.
+ *
+ * The frontend's `hass.entities` are EntityRegistryDisplayEntry objects whose
+ * visibility is the boolean `hidden` field (equivalent to the `is_hidden_entity`
+ * template) — set when an entity is hidden by its integration or by the user.
+ * The full registry's `hidden_by`/`disabled_by` are NOT present on these display
+ * entries, but we also honor them so full registry entries (e.g. in tests) work.
+ *
+ * A state-only entity with no registry entry (`undefined`) is treated as
+ * visible — it cannot carry a hidden flag.
+ */
+export function isEntityVisible(entity: Entity | undefined): boolean {
+    if (!entity) return true;
+    return !entity.hidden && !entity.hidden_by && !entity.disabled_by;
+}
+
+/**
  * Get the area ID for an entity, checking entity.area_id first, then device.area_id fallback.
  */
 export function getEntityAreaId(entity: Entity, devices: Record<string, any> | undefined): string | null {

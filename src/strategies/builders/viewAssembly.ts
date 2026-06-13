@@ -72,7 +72,7 @@ export function buildHomeView(
 }
 
 /**
- * Build favorites section from favorite entity IDs.
+ * Build favorites section from favorite entity IDs using tile cards.
  */
 export function buildFavoritesSection(favoriteEntityIds: string[]): LovelaceSection | null {
     if (favoriteEntityIds.length === 0) return null;
@@ -84,31 +84,43 @@ export function buildFavoritesSection(favoriteEntityIds: string[]): LovelaceSect
                 heading: 'Favorites',
                 heading_style: 'title',
             },
-            {
-                type: 'entities',
-                title: 'Favorites',
-                entities: favoriteEntityIds,
-                show_header_toggle: false,
-            },
+            ...favoriteEntityIds.map((entityId) => ({
+                type: 'tile' as const,
+                entity: entityId,
+                show_entity_picture: true,
+            })),
         ],
         4
     );
 }
 
 /**
- * Build the "suggested" (frequently-used) entities section.
+ * Build the "suggested" section from usage-prediction entity IDs.
  *
- * The graphical editor exposes a `suggested` toggle, but computing which
- * entities are "frequently used" requires usage/analytics data that the strategy
- * does not currently receive from `hass`. Until that data source exists this
- * returns null even when enabled — the flag is plumbed end-to-end so the UI and
- * config round-trip correctly. See memory: visual-config-editor-spec.
+ * `predictedEntityIds` should be pre-fetched by the caller via
+ * `hass.callWS({ type: 'usage_prediction/common_control' })`, already filtered
+ * to entities that exist in hass.states, deduped against favorites, and
+ * limited to the desired count. Returns null when the toggle is off or when no
+ * predicted entities are available (component not loaded, insufficient data, etc.)
  */
-export function buildSuggestedSection(showSuggested: boolean): LovelaceSection | null {
-    if (!showSuggested) return null;
-    // TODO: derive frequently-used entity_ids once usage data is available,
-    // then return a grid section mirroring buildFavoritesSection.
-    return null;
+export function buildSuggestedSection(showSuggested: boolean, predictedEntityIds: string[] = []): LovelaceSection | null {
+    if (!showSuggested || predictedEntityIds.length === 0) return null;
+
+    return buildGridSection(
+        [
+            {
+                type: 'heading',
+                heading: 'Suggested',
+                heading_style: 'title',
+            },
+            ...predictedEntityIds.map((entityId) => ({
+                type: 'tile' as const,
+                entity: entityId,
+                show_entity_picture: true,
+            })),
+        ],
+        4
+    );
 }
 
 /**
