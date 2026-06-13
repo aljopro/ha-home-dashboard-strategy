@@ -3,7 +3,10 @@
  * One thing in, one thing out. No side effects.
  */
 
-import type { Entity, Area, EntityDomainInfo } from '../../types/cards.js';
+import { HomeAssistant } from '../../types/cards.js';
+import type { Area, Entity, EntityDomainInfo, EntityFilter, EntityState } from '../../types/core.js';
+import { ensureArray } from '../../utils/ensure-array.js';
+import { getEntityContext } from './getEntityContext.js';
 
 /**
  * Get the area ID for an entity, checking entity.area_id first, then device.area_id fallback.
@@ -19,16 +22,73 @@ export function getEntityAreaId(entity: Entity, devices: Record<string, any> | u
 /**
  * Filter entities by included domains and excluded entity list.
  */
+
+export function filterEntities(entities: Entity[], hass: HomeAssistant, domainInfo: EntityDomainInfo): Entity[] {
+    return entities.filter((entity: Entity) => {
+        const result = ensureArray(domainInfo.filter)
+            .map((filter) => generateEntityFilter(hass, filter))
+            .some((filterFunc) => filterFunc(entity.entity_id));
+        return result;
+    });
+}
+
+export function generateEntityFilter(hass: HomeAssistant, filter: EntityFilter): (entityId: string) => boolean {
+    const domains = normalizeFilterArray(filter.domain || []);
+    const deviceClasses = normalizeFilterArray(filter.device_class || []);
+    const entityCategories = normalizeFilterArray(filter.entity_category || []);
+
+    return (entityId: string) => {
+        const context = getEntityContext(hass, entityId);
+
+        if (!context) {
+            return false;
+        }
+        if (domains && domains.size > 0) {
+            if (!domains.has(context.device_class)) {
+                return false;
+            }
+        }
+        if (deviceClasses && deviceClasses.size > 0) {
+            const deviceClass = context.entity?.device_class || 'none';
+
+            if (!deviceClasses.has(deviceClass)) {
+                return false;
+            }
+        }
+        if (entityCategories && entityCategories.size > 0) {
+            const category = context.entity?.entity_category || 'none';
+
+            if (!entityCategories.has(category)) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+}
+
+export function normalizeFilterArray<T>(value: T | null | T[] | (T | null)[] | undefined): Set<T | null> | undefined {
+    if (value === undefined) {
+        return undefined;
+    }
+    if (value === null) {
+        return new Set([null]);
+    }
+    return new Set(ensureArray(value));
+}
+
 export function filterEntitiesByDomainAndExclusions(
-    entities: Entity[],
+    hass: HomeAssistant,
     domainInfo: EntityDomainInfo[],
     excludedEntities: string[]
 ): Entity[] {
-    return entities.filter((entity) => {
-        const hasIncludedDomain = domainInfo.some((info) => entity.entity_id.startsWith(`${info.id}.`));
-        const isNotExcluded = !excludedEntities.includes(entity.entity_id);
-        return hasIncludedDomain && isNotExcluded;
-    });
+    const entities = Object.values(hass?.entities || {}) as Entity[];
+
+    return domainInfo
+        .flatMap((info) => {
+            return filterEntities(entities, hass, info);
+        })
+        .filter((entity) => !excludedEntities.includes(entity.entity_id));
 }
 
 /**

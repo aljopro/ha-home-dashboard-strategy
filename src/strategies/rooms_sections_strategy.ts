@@ -15,20 +15,15 @@ import type {
     DashboardStrategyConfig,
     HomeAssistant,
     LovelaceConfig,
-    Entity,
-    Area,
     LoveLaceDashboardStrategy,
-    EntityDomainInfo,
 } from '../types/cards.js';
 
 import {
     filterEntitiesByDomainAndExclusions,
+    normalizeFilterArray,
     sortEntitiesAlphabetically,
-    sortAreasAlphabetically,
 } from './builders/entityFilters.js';
-import { buildAreaCardsSection, getAreaIdsFromCards } from './builders/areaCards.js';
-import { buildAreaViews } from './builders/areaViews.js';
-import { groupMediaPlayersByArea, buildMediaPlayersView } from './builders/mediaPlayersView.js';
+import { getEntityContext } from './builders/getEntityContext.js';
 import { buildSummaryCards } from './builders/summaryCards.js';
 import {
     buildHomeView,
@@ -36,31 +31,87 @@ import {
     buildSummarySection,
     buildAreaCardsGridSection,
 } from './builders/viewAssembly.js';
+import { EntityDomainInfo, EntityFilter, Area, Entity, EntityContext } from '../types/core.js';
+import { buildAreaCardsSection } from './builders/areaCards.js';
 
 /**
  * Default entity domains to include in the strategy.
  */
-const DEFAULT_ENTITY_DOMAINS: EntityDomainInfo[] = [
-    { id: 'light', name: 'Lights', icon: 'mdi:lightbulb' },
-    { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch' },
-    { id: 'fan', name: 'Fans', icon: 'mdi:fan' },
-    { id: 'cover', name: 'Covers', icon: 'mdi:window-shutter' },
-    { id: 'camera', name: 'Security', icon: 'mdi:camera' },
+
+export const mediaPlayerEntityFilters: EntityFilter[] = [{ domain: 'media_player', entity_category: 'none' }];
+export const lightEntityFilters: EntityFilter[] = [{ domain: 'light', entity_category: 'none' }];
+export const switchEntityFilters: EntityFilter[] = [
+    {
+        domain: 'switch',
+        device_class: ['outlet', 'switch'],
+    },
+];
+export const coverEntityFilters: EntityFilter[] = [
+    {
+        domain: 'cover',
+        device_class: ['awning', 'blind', 'curtain', 'shade', 'shutter', 'window', 'none'],
+    },
+    {
+        domain: 'binary_sensor',
+        device_class: ['window'],
+    },
+];
+export const climateEntityFilters: EntityFilter[] = [
+    { domain: 'climate' },
+    { domain: 'humidifier' },
+    { domain: 'fan' },
+    { domain: 'water_heater' },
+];
+export const securityEntityFilters: EntityFilter[] = [
+    {
+        domain: 'camera',
+    },
+    {
+        domain: 'alarm_control_panel',
+    },
+    {
+        domain: 'lock',
+    },
+    {
+        domain: 'cover',
+        device_class: ['door', 'garage', 'gate'],
+    },
+    {
+        domain: 'binary_sensor',
+        device_class: [
+            // Locks
+            'lock',
+            // Openings
+            'door',
+            'window',
+            'garage_door',
+            'opening',
+            // Safety
+            'carbon_monoxide',
+            'gas',
+            'moisture',
+            'safety',
+            'smoke',
+            'tamper',
+        ],
+    },
+    // We also want the tamper sensors when they are diagnostic
+    {
+        domain: 'binary_sensor',
+        device_class: ['tamper'],
+        entity_category: 'diagnostic',
+    },
 ];
 
-/**
- * Main strategy logic: generates views from config and Home Assistant state.
- *
- * Composition flow:
- * 1. Prepare data (extract areas, entities, media players)
- * 2. Filter entities by domain and exclusion list
- * 3. Build area cards and per-area views
- * 4. Build media players view
- * 5. Build summary cards
- * 6. Build favorites section
- * 7. Assemble home view from sections
- * 8. Return complete view config
- */
+const DEFAULT_ENTITY_DOMAINS: EntityDomainInfo[] = [
+    { id: 'light', name: 'Lights', icon: 'mdi:lamps', filter: lightEntityFilters },
+    { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch', filter: switchEntityFilters },
+    { id: 'cover', name: 'Shades', icon: 'mdi:window-shutter', filter: coverEntityFilters },
+    { id: 'climate', name: 'Climate', icon: 'mdi:thermostat', filter: climateEntityFilters },
+    { id: 'camera', name: 'Security', icon: 'mdi:security', filter: securityEntityFilters },
+    { id: 'media_player', name: 'Media Players', icon: 'mdi:multimedia', filter: mediaPlayerEntityFilters },
+];
+
 export function generateViews(config: DashboardStrategyConfig, hass: HomeAssistant): LovelaceConfig {
     // Extract configuration
     const excludedEntities = config.excluded_entities || [];
@@ -68,39 +119,98 @@ export function generateViews(config: DashboardStrategyConfig, hass: HomeAssista
     const favoriteEntityIds = (config.favorite_entities || []).filter((id: string) => hass?.states?.[id] !== undefined);
 
     // Extract data from Home Assistant
-    const areas = sortAreasAlphabetically(Object.values(hass?.areas || {}) as Area[]);
-    const allEntities = Object.values(hass?.entities || {}) as Entity[];
     const allEntityIds = Object.keys(hass?.states || {});
-    const devices = hass?.devices || {};
 
     // Step 1: Filter and sort entities
-    const filteredEntities = filterEntitiesByDomainAndExclusions(allEntities, DEFAULT_ENTITY_DOMAINS, excludedEntities);
-    const sortedEntities = sortEntitiesAlphabetically(filteredEntities);
+    const entityContexts: EntityContext[] = allEntityIds
+        .map((entityId) => getEntityContext(hass, entityId))
+        .filter((context) => context !== null)
+        .sort((a, b) => {
+            return (a.entity.name || a.entity.entity_id).localeCompare(b.entity.name || b.entity.entity_id);
+        }) as EntityContext[];
 
-    // Step 2: Build area cards for home view
-    const areaCards = buildAreaCardsSection(areas, sortedEntities, devices, basePath);
-    const areaIds = getAreaIdsFromCards(areaCards);
+    const domainFiltersFn = DEFAULT_ENTITY_DOMAINS.map((domainInfo) => {
+        return (context: EntityContext | null) => {
+            if (context === null) {
+                return false;
+            }
 
-    // Build area name lookup for later use
-    const areaNameMap: Record<string, string> = {};
-    areas.forEach((area) => {
-        areaNameMap[area.area_id] = area.name || area.area_id;
+            return domainInfo.filter.some((filter) => {
+                const domains = normalizeFilterArray(filter.domain || []);
+                const deviceClasses = normalizeFilterArray(filter.device_class || []);
+                const entityCategories = normalizeFilterArray(filter.entity_category || []);
+
+                if (domains && domains.size > 0) {
+                    if (!domains.has(context.device_class)) {
+                        return false;
+                    }
+                }
+                if (deviceClasses && deviceClasses.size > 0) {
+                    const deviceClass = context.device_class || 'none';
+
+                    if (!deviceClasses.has(deviceClass)) {
+                        return false;
+                    }
+                }
+                if (entityCategories && entityCategories.size > 0) {
+                    const category = context.entity?.entity_category || 'none';
+
+                    if (!entityCategories.has(category)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        };
     });
 
+    const filteredEntityContexts = entityContexts.filter((context) => {
+        if (excludedEntities.includes(context.entity.entity_id)) {
+            return false;
+        }
+
+        return domainFiltersFn.some((filterFn) => {
+            const value = filterFn(context);
+            return value;
+        });
+    });
+
+    // Step 2: Build area cards for home view
+    const filteredAreas = [
+        ...new Set(
+            filteredEntityContexts
+                .map((entityContexts) => entityContexts.area)
+                .filter((area) => area !== null) as Area[]
+        ),
+    ];
+
+    const areaCards = buildAreaCardsSection(filteredAreas, basePath);
+
     // Step 3: Build per-area views
-    const areaViews = buildAreaViews(areaIds, areaNameMap, sortedEntities, DEFAULT_ENTITY_DOMAINS, devices);
+
+    const areaViews = filteredAreas.map((area) => {
+        return {
+            title: area.name,
+            path: area.area_id,
+            subview: true,
+            strategy: {
+                type: 'home-area',
+                area: area.area_id,
+            },
+        };
+    });
 
     // Step 4: Build media players view
-    const mediaEntities = allEntities.filter(
-        (e) => e.entity_id && e.entity_id.startsWith('media_player.') && !excludedEntities.includes(e.entity_id)
-    );
-    const mediaGrouping = groupMediaPlayersByArea(mediaEntities, devices);
-    const mediaPlayersView = buildMediaPlayersView(
-        mediaGrouping.mediaByArea,
-        mediaGrouping.unassignedMedia,
-        areaIds,
-        areaNameMap
-    );
+
+    const mediaPlayersView = {
+        title: 'Media Players',
+        path: 'media-players',
+        subview: true,
+        strategy: {
+            type: 'home-media-players',
+        },
+    };
 
     // Step 5: Build summary cards
     const summaryCards = buildSummaryCards(allEntityIds);
@@ -109,7 +219,6 @@ export function generateViews(config: DashboardStrategyConfig, hass: HomeAssista
     const favoritesSection = buildFavoritesSection(favoriteEntityIds);
     const summarySection = buildSummarySection(summaryCards);
     const areaCardsSection = buildAreaCardsGridSection(areaCards);
-
     const homeViewSections = [favoritesSection, summarySection, areaCardsSection].filter((s) => s !== null);
 
     // Step 7: Build and return complete view config
@@ -127,12 +236,10 @@ export function generateViews(config: DashboardStrategyConfig, hass: HomeAssista
  */
 export default class RoomsSectionsStrategy extends HTMLElement implements LoveLaceDashboardStrategy {
     async generate(config: DashboardStrategyConfig, hass: HomeAssistant): Promise<LovelaceConfig> {
-        console.log('RoomsSectionsStrategy: generating views with config', config);
         return generateViews(config, hass);
     }
 
     static async generate(config: DashboardStrategyConfig, hass: HomeAssistant): Promise<LovelaceConfig> {
-        console.log('RoomsSectionsStrategy: generating views with config', config);
         return generateViews(config, hass);
     }
 }

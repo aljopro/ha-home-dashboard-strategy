@@ -4,6 +4,8 @@
  * Reference: https://github.com/home-assistant/frontend/blob/dev/src/panels/lovelace/types.ts
  */
 
+import { EntityRegistry, DeviceRegistry, AreaRegistry, HassStates } from "./core";
+
 // ============================================================================
 // Action & Navigation Types
 // ============================================================================
@@ -175,7 +177,16 @@ export interface SectionsView {
     theme?: string;
 }
 
-export type LovelaceView = SectionsView;
+export interface StragegyView {
+    title: string;
+    path: string;
+    subview: boolean;
+    strategy: {
+        type: string
+    },
+}
+
+export type LovelaceView = SectionsView | StragegyView;
 
 /**
  * Complete Lovelace configuration output.
@@ -185,83 +196,7 @@ export interface LovelaceConfig {
     views: LovelaceView[];
 }
 
-// ============================================================================
-// Home Assistant Core Types
-// ============================================================================
 
-/**
- * Entity domain information for grouping.
- */
-export interface EntityDomainInfo {
-    id: string;
-    name: string;
-    icon: string;
-}
-
-/**
- * Entity metadata from entity registry.
- * Aligns with HA EntityRegistry entries.
- */
-export interface Entity {
-    entity_id: string;
-    name?: string;
-    area_id?: string | null;
-    device_id?: string | null;
-    platform?: string;
-    icon?: string;
-    disabled_by?: string | null;
-    hidden_by?: string | null;
-}
-
-/**
- * Device metadata from device registry.
- * Aligns with HA DeviceRegistry entries.
- */
-export interface Device {
-    id: string;
-    area_id?: string;
-    name?: string;
-    model?: string;
-    manufacturer?: string;
-    disabled_by?: string | null;
-}
-
-/**
- * Area metadata from area registry.
- * Aligns with HA AreaRegistry entries.
- */
-export interface Area {
-    area_id: string;
-    name: string;
-    icon?: string;
-}
-
-/**
- * State object for an entity.
- * Aligns with HA HassEntity pattern (from home-assistant-js-websocket).
- */
-export interface EntityState {
-    state: string;
-    attributes: Record<string, unknown>;
-    last_changed?: string;
-    last_updated?: string;
-}
-
-export interface EntityRegistry {
-    [key: string]: Entity;
-}
-
-export interface DeviceRegistry {
-    [key: string]: Device;
-}
-
-export interface AreaRegistry {
-    [key: string]: Area;
-}
-
-export interface HassStates {
-    [key: string]: EntityState;
-}
 
 /**
  * Minimal Home Assistant object type for strategy generation.

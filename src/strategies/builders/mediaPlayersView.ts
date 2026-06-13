@@ -3,7 +3,8 @@
  * Groups media players by area, returns a LovelaceView.
  */
 
-import type { LovelaceView, StrategyCard, Entity, MediaControlCard, HeadingCard } from '../../types/cards.js';
+import type { LovelaceView, StrategyCard, MediaControlCard, HeadingCard } from '../../types/cards.js';
+import { Area, Entity } from '../../types/core.js';
 import { getEntityAreaId } from './entityFilters.js';
 
 interface MediaGrouping {
@@ -39,8 +40,7 @@ export function groupMediaPlayersByArea(
  * Build cards for area media players.
  */
 export function buildAreaMediaCards(
-    areas: string[], // array of area IDs
-    areaNames: Record<string, string>, // map of area_id -> area name
+    areas: Area[],
     mediaByArea: Map<string, string[]>
 ): StrategyCard[] {
     const cards: StrategyCard[] = [
@@ -51,14 +51,14 @@ export function buildAreaMediaCards(
         } as HeadingCard,
     ];
 
-    areas.forEach((areaId) => {
-        const players = mediaByArea.get(areaId);
+    areas.forEach((area) => {
+        const players = mediaByArea.get(area.area_id);
         if (!players || players.length === 0) return;
 
         cards.push({
             type: 'heading',
             heading_style: 'subtitle',
-            heading: areaNames[areaId] || areaId,
+            heading: area.name,
         } as HeadingCard);
 
         players.forEach((entityId) => {
@@ -100,10 +100,9 @@ export function buildUnassignedMediaCards(entityIds: string[]): StrategyCard[] {
 export function buildMediaPlayersView(
     mediaByArea: Map<string, string[]>,
     unassignedMedia: string[],
-    areaIds: string[],
-    areaNames: Record<string, string>
+    areas: Area[]
 ): LovelaceView {
-    const areaCards = buildAreaMediaCards(areaIds, areaNames, mediaByArea);
+    const areaCards = buildAreaMediaCards(areas, mediaByArea);
     const otherCards = buildUnassignedMediaCards(unassignedMedia);
 
     return {

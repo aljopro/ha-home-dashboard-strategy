@@ -50,7 +50,7 @@ export function buildSummaryCards(allEntityIds: string[]): StrategyCard[] {
 
     // Media players
     if (hasDomain(allEntityIds, 'media_player')) {
-        cards.push(buildSummaryCard('media_players', '/media-players'));
+        cards.push(buildSummaryCard('media_players', 'media-players'));
     }
 
     return cards;

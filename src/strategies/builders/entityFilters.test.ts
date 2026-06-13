@@ -5,14 +5,14 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-    filterEntitiesByDomainAndExclusions,
+    filterEntities,
     sortEntitiesAlphabetically,
     filterValidAreas,
     sortAreasAlphabetically,
     getAreaDomainEntities,
     hasDomain,
 } from './entityFilters.js';
-import type { Entity, Area } from '../../types/cards.js';
+import type { Entity, Area } from '../../types/core.js';
 
 describe('entityFilters', () => {
     const mockDomains = [
@@ -43,7 +43,7 @@ describe('entityFilters', () => {
                 },
             ];
 
-            const result = filterEntitiesByDomainAndExclusions(entities, mockDomains, []);
+            const result = filterEntities(entities, mockDomains, []);
 
             expect(result).toHaveLength(2);
             expect(result.map((e) => e.entity_id)).toEqual(['light.living_room', 'switch.fan']);
@@ -65,7 +65,7 @@ describe('entityFilters', () => {
                 },
             ];
 
-            const result = filterEntitiesByDomainAndExclusions(entities, mockDomains, ['light.living_room']);
+            const result = filterEntities(entities, mockDomains, ['light.living_room']);
 
             expect(result).toHaveLength(1);
             expect(result[0].entity_id).toBe('light.bedroom');
@@ -81,7 +81,7 @@ describe('entityFilters', () => {
                 },
             ];
 
-            const result = filterEntitiesByDomainAndExclusions(entities, mockDomains, []);
+            const result = filterEntities(entities, mockDomains, []);
 
             expect(result).toHaveLength(0);
         });

@@ -3,8 +3,8 @@
  * Takes config + entities + areas, returns array of area cards (no side effects).
  */
 
-import type { StrategyCard, Area, Entity } from '../../types/cards.js';
-import { getEntityAreaId } from './entityFilters.js';
+import type { StrategyCard } from '../../types/cards.js';
+import { Area, EntityContext } from '../../types/core.js';
 
 /**
  * Build a single area card with heading, area controls, and navigation.
@@ -32,23 +32,11 @@ export function buildAreaCard(area: Area, basePath: string): StrategyCard {
  * Build the full area cards section for the home view.
  * Returns: [heading card, ...area cards]
  */
-export function buildAreaCardsSection(
-    areas: Area[],
-    entities: Entity[],
-    devices: Record<string, any> | undefined,
-    basePath: string
-): StrategyCard[] {
+export function buildAreaCardsSection(areas: Area[], basePath: string): StrategyCard[] {
     const validAreas = areas
-        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
         .filter((area) => area.area_id !== 'default')
         .filter((area) => area.name && area.name.trim() !== '')
-        .filter((area) =>
-            entities.some((entity) => {
-                const areaId = getEntityAreaId(entity, devices);
-                return areaId === area.area_id;
-            })
-        );
-
+        .sort((a, b) => a.name.localeCompare(b.name));
     const areaCards = validAreas.map((area) => buildAreaCard(area, basePath));
 
     return [{ type: 'heading', heading: 'Areas', heading_style: 'title' }, ...areaCards];
