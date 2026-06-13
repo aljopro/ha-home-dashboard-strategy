@@ -1,13 +1,13 @@
 /**
  * Pure builder for the Climate subview (`custom:home-climate`).
  *
- * Lists every climate entity — thermostats, fans, humidifiers, and water
- * heaters — grouped by area. The membership definition is reused from
- * `climateEntityFilters` (see entityDomains.ts) so the subview, the home-view
- * area cards, and the per-area views all agree on what "climate" means.
- * `climate.*` entities render as `thermostat` cards; the rest (fan / humidifier
- * / water_heater) render as `tile` cards. Entities with no resolvable area are
- * collected under a trailing "Other climate" group.
+ * Lists every climate entity — thermostats, fans, and humidifiers — grouped by
+ * area. The membership definition is reused from `climateEntityFilters` (see
+ * entityDomains.ts) so the subview, the home-view area cards, and the per-area
+ * views all agree on what "climate" means. `climate.*` entities render as
+ * `thermostat` cards; the rest (fan / humidifier) render as `tile` cards.
+ * Entities with no resolvable area are collected under a trailing "Other
+ * climate" group.
  *
  * Mirrors the Lights view builder (see lightsView.ts).
  */
@@ -47,7 +47,7 @@ function displayName(hass: HomeAssistant, entityId: string): string {
 
 /**
  * All climate entity_ids: every registry entity matching any of the shared
- * `climateEntityFilters` (climate / fan / humidifier / water_heater).
+ * `climateEntityFilters` (climate / fan / humidifier).
  * Visibility, and the dashboard's device requirement, are enforced by the
  * underlying entity-context resolution. Sorted alphabetically by display name.
  */

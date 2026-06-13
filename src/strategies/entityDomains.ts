@@ -32,7 +32,9 @@ export const climateEntityFilters: EntityFilter[] = [
     { domain: 'climate' },
     { domain: 'humidifier' },
     { domain: 'fan' },
-    { domain: 'water_heater' },
+    // water_heater intentionally excluded: some integrations (e.g. GE/SmartHQ)
+    // map ovens onto the water_heater domain, so it does not reliably represent
+    // home climate. Re-add if real water heaters need a home here.
 ];
 export const securityEntityFilters: EntityFilter[] = [
     {

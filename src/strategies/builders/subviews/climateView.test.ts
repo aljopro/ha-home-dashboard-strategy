@@ -7,11 +7,12 @@ import { buildClimateView, collectClimateEntityIds, groupClimateByArea } from '.
 import type { HomeAssistant, HeadingCard } from '../../../types/cards.js';
 
 /**
- * Minimal hass exercising the climate membership rules: a thermostat, a fan, a
- * humidifier, a water heater (all in climateEntityFilters), plus a light that
- * must be excluded. Entities carry device_id + device so entity-context
- * resolution (which requires a device) keeps them; some get their area via the
- * device.
+ * Minimal hass exercising the climate membership rules: a thermostat, a fan and
+ * a humidifier (all in climateEntityFilters), plus a light and a water_heater
+ * that must be excluded. The water_heater stands in for an oven that an
+ * integration (e.g. GE/SmartHQ) mislabels onto that domain — it must not appear
+ * on Climate. Entities carry device_id + device so entity-context resolution
+ * (which requires a device) keeps them; some get their area via the device.
  */
 function makeHass(): HomeAssistant {
     return {
@@ -41,22 +42,23 @@ function makeHass(): HomeAssistant {
 }
 
 describe('collectClimateEntityIds', () => {
-    it('includes climate, fan, humidifier and water_heater entities', () => {
+    it('includes climate, fan and humidifier entities', () => {
         const ids = collectClimateEntityIds(makeHass());
         expect(ids).toContain('climate.kitchen');
         expect(ids).toContain('fan.bedroom');
         expect(ids).toContain('humidifier.bedroom');
-        expect(ids).toContain('water_heater.tank');
     });
 
-    it('excludes non-climate entities (light)', () => {
-        expect(collectClimateEntityIds(makeHass())).not.toContain('light.kitchen');
+    it('excludes non-climate entities (light) and water_heater (oven mislabel)', () => {
+        const ids = collectClimateEntityIds(makeHass());
+        expect(ids).not.toContain('light.kitchen');
+        expect(ids).not.toContain('water_heater.tank');
     });
 
     it('sorts by display name', () => {
         const ids = collectClimateEntityIds(makeHass());
-        // Bedroom Fan, Bedroom Humidifier, Kitchen Thermostat, Water Heater
-        expect(ids).toEqual(['fan.bedroom', 'humidifier.bedroom', 'climate.kitchen', 'water_heater.tank']);
+        // Bedroom Fan, Bedroom Humidifier, Kitchen Thermostat
+        expect(ids).toEqual(['fan.bedroom', 'humidifier.bedroom', 'climate.kitchen']);
     });
 
     it('excludes hidden / disabled entities', () => {
@@ -93,8 +95,8 @@ describe('buildClimateView', () => {
         const tiles = cards.filter((c) => c.type === 'tile');
         expect(thermostats).toHaveLength(1);
         expect((thermostats[0] as any).entity).toBe('climate.kitchen');
-        // fan, humidifier, water_heater
-        expect(tiles).toHaveLength(3);
+        // fan, humidifier
+        expect(tiles).toHaveLength(2);
     });
 
     it('gives fan tiles the fan control features, leaving other tiles plain', () => {
@@ -104,9 +106,8 @@ describe('buildClimateView', () => {
         const fanFeatures = byEntity('fan.bedroom').features.map((f: any) => f.type);
         expect(fanFeatures).toEqual(['fan-speed', 'fan-preset-modes', 'fan-oscillate', 'fan-direction']);
 
-        // humidifier / water_heater tiles carry no features
+        // humidifier tile carries no features
         expect(byEntity('humidifier.bedroom').features).toBeUndefined();
-        expect(byEntity('water_heater.tank').features).toBeUndefined();
     });
 
     it('emits a subtitle heading per area group', () => {
