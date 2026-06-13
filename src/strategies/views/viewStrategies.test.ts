@@ -50,8 +50,8 @@ describe('view strategy registration', () => {
 
     it('home-climate generate returns a climate sections view', async () => {
         const hass = {
-            entities: { 'climate.kitchen': { entity_id: 'climate.kitchen', area_id: 'kitchen' } },
-            devices: {},
+            entities: { 'climate.kitchen': { entity_id: 'climate.kitchen', device_id: 'd1', area_id: 'kitchen' } },
+            devices: { d1: { id: 'd1', area_id: 'kitchen' } },
             areas: { kitchen: { area_id: 'kitchen', name: 'Kitchen' } },
             states: { 'climate.kitchen': { state: 'heat', attributes: { friendly_name: 'Kitchen' } } },
         } as unknown as HomeAssistant;

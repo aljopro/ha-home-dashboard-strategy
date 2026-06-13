@@ -148,6 +148,16 @@ export interface DomainSummaryCard extends LovelaceCardConfig {
 }
 
 /**
+ * A tile card feature (the control rows below a tile, e.g. `fan-speed`). HA hides
+ * any feature the entity doesn't support, so several can be listed safely.
+ * Aligns with HA frontend LovelaceCardFeatureConfig.
+ */
+export interface TileCardFeature {
+    type: string;
+    [key: string]: unknown;
+}
+
+/**
  * Tile card for displaying a single entity with optional picture.
  * Aligns with HA frontend TileCardConfig.
  */
@@ -158,6 +168,7 @@ export interface TileCard extends LovelaceCardConfig {
     name?: string;
     icon?: string;
     color?: string;
+    features?: TileCardFeature[];
 }
 
 /**

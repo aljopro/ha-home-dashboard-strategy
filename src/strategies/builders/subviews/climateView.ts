@@ -1,15 +1,42 @@
 /**
  * Pure builder for the Climate subview (`custom:home-climate`).
  *
- * Lists every `climate.*` entity, grouped by area, as thermostat cards.
- * Entities with no area are collected under a trailing "Other climate" group.
- * Returned as a sections view body; the dashboard supplies the
- * title/path/subview base. Mirrors the Lights view builder (see lightsView.ts).
+ * Lists every climate entity — thermostats, fans, humidifiers, and water
+ * heaters — grouped by area. The membership definition is reused from
+ * `climateEntityFilters` (see entityDomains.ts) so the subview, the home-view
+ * area cards, and the per-area views all agree on what "climate" means.
+ * `climate.*` entities render as `thermostat` cards; the rest (fan / humidifier
+ * / water_heater) render as `tile` cards. Entities with no resolvable area are
+ * collected under a trailing "Other climate" group.
+ *
+ * Mirrors the Lights view builder (see lightsView.ts).
  */
 
-import type { HeadingCard, HomeAssistant, SectionsView, StrategyCard, ThermostatCard } from '../../../types/cards.js';
-import type { Area, HassStates } from '../../../types/core.js';
-import { getEntityAreaId, isEntityVisible } from '../entities/entityFilters.js';
+import type {
+    HeadingCard,
+    HomeAssistant,
+    SectionsView,
+    StrategyCard,
+    ThermostatCard,
+    TileCard,
+    TileCardFeature,
+} from '../../../types/cards.js';
+import type { Area } from '../../../types/core.js';
+import { climateEntityFilters } from '../../entityDomains.js';
+import { generateEntityFilter, getEntityAreaId } from '../entities/entityFilters.js';
+
+/**
+ * Tile features for `fan.*` entities. Each renders only when the fan supports
+ * it (HA hides unsupported features), so every relevant control is offered:
+ * speed slider, preset modes, oscillation, and direction (e.g. ceiling-fan
+ * summer/winter reverse). On/off is the tile's built-in icon tap.
+ */
+const FAN_TILE_FEATURES: TileCardFeature[] = [
+    { type: 'fan-speed' },
+    { type: 'fan-preset-modes' },
+    { type: 'fan-oscillate' },
+    { type: 'fan-direction' },
+];
 
 /** Display name for an entity: friendly_name → registry name → entity_id. */
 function displayName(hass: HomeAssistant, entityId: string): string {
@@ -19,14 +46,15 @@ function displayName(hass: HomeAssistant, entityId: string): string {
 }
 
 /**
- * All climate entity_ids: every visible `climate.*`. Sorted alphabetically by
- * display name.
+ * All climate entity_ids: every registry entity matching any of the shared
+ * `climateEntityFilters` (climate / fan / humidifier / water_heater).
+ * Visibility, and the dashboard's device requirement, are enforced by the
+ * underlying entity-context resolution. Sorted alphabetically by display name.
  */
 export function collectClimateEntityIds(hass: HomeAssistant): string[] {
-    const states: HassStates = hass.states ?? {};
-    return Object.keys(states)
-        .filter((id) => id.startsWith('climate.'))
-        .filter((id) => isEntityVisible(hass.entities?.[id]))
+    const matchers = climateEntityFilters.map((filter) => generateEntityFilter(hass, filter));
+    return Object.keys(hass.entities ?? {})
+        .filter((id) => matchers.some((matches) => matches(id)))
         .sort((a, b) => displayName(hass, a).localeCompare(displayName(hass, b)));
 }
 
@@ -65,15 +93,25 @@ export function groupClimateByArea(hass: HomeAssistant): ClimateGroup[] {
     return groups;
 }
 
-/** Build the subtitle heading + thermostat cards for one climate group. */
+/** Card for one climate entity: thermostats as thermostat cards, others as tiles. */
+function buildClimateCard(entityId: string): ThermostatCard | TileCard {
+    if (entityId.startsWith('climate.')) {
+        return { type: 'thermostat', entity: entityId };
+    }
+    if (entityId.startsWith('fan.')) {
+        return { type: 'tile', entity: entityId, features: FAN_TILE_FEATURES };
+    }
+    return { type: 'tile', entity: entityId };
+}
+
+/** Build the subtitle heading + entity cards for one climate group. */
 function buildGroupCards(group: ClimateGroup): StrategyCard[] {
     const heading: HeadingCard = {
         type: 'heading',
         heading_style: 'subtitle',
         heading: group.area?.name ?? 'Other climate',
     };
-    const thermostats: ThermostatCard[] = group.entityIds.map((entity) => ({ type: 'thermostat', entity }));
-    return [heading, ...thermostats];
+    return [heading, ...group.entityIds.map(buildClimateCard)];
 }
 
 /**
