@@ -28,11 +28,15 @@ import { buildSummaryCards } from './builders/summaryCards.js';
 import {
     buildHomeView,
     buildFavoritesSection,
+    buildSuggestedSection,
     buildSummarySection,
     buildAreaCardsGridSection,
 } from './builders/viewAssembly.js';
 import { EntityDomainInfo, EntityFilter, Area, Entity, EntityContext } from '../types/core.js';
 import { buildAreaCardsSection } from './builders/areaCards.js';
+
+// Side-effect import: registers the graphical config editor element.
+import './editor/roomsSectionsEditor.js';
 
 /**
  * Default entity domains to include in the strategy.
@@ -217,9 +221,12 @@ export function generateViews(config: DashboardStrategyConfig, hass: HomeAssista
 
     // Step 6: Build home view sections
     const favoritesSection = buildFavoritesSection(favoriteEntityIds);
+    const suggestedSection = buildSuggestedSection(config.suggested ?? false);
     const summarySection = buildSummarySection(summaryCards);
     const areaCardsSection = buildAreaCardsGridSection(areaCards);
-    const homeViewSections = [favoritesSection, summarySection, areaCardsSection].filter((s) => s !== null);
+    const homeViewSections = [favoritesSection, suggestedSection, summarySection, areaCardsSection].filter(
+        (s) => s !== null
+    );
 
     // Step 7: Build and return complete view config
     const homeView = buildHomeView(homeViewSections as Parameters<typeof buildHomeView>[0], config);
@@ -241,6 +248,14 @@ export default class RoomsSectionsStrategy extends HTMLElement implements LoveLa
 
     static async generate(config: DashboardStrategyConfig, hass: HomeAssistant): Promise<LovelaceConfig> {
         return generateViews(config, hass);
+    }
+
+    /**
+     * Returns the graphical configuration editor element. Home Assistant shows
+     * this in the dashboard settings dialog.
+     */
+    static getConfigElement(): HTMLElement {
+        return document.createElement('ll-strategy-editor-rooms-sections');
     }
 }
 

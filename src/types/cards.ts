@@ -227,15 +227,40 @@ export interface LovelaceStrategyConfig {
 }
 
 /**
+ * Header configuration for the home view.
+ * Editable via the graphical config editor (toggle + custom title text).
+ */
+export interface StrategyHeaderConfig {
+    /** Whether to show the header at all. Defaults to shown when omitted. */
+    show?: boolean;
+    /** Custom heading text rendered at the top of the home view. */
+    title?: string;
+}
+
+/**
  * Dashboard strategy configuration.
  * Extended with custom strategy-specific options.
+ * All fields are optional and defaulted — a bare `{ type }` config must still
+ * generate a valid dashboard. See docs/Strategy_API_Guidelines.md §6.
  */
 export interface DashboardStrategyConfig extends LovelaceStrategyConfig {
     type: string;
+    /** entity_ids omitted from the dashboard entirely. */
     excluded_entities?: string[];
+    /** entity_ids pinned to the top "Favorites" section. */
     favorite_entities?: string[];
-    header?: Record<string, unknown>;
-    badges?: unknown[];
+    /** Show frequently-used ("suggested") entities alongside favorites. */
+    suggested?: boolean;
+    /** Home-view header config (graphical editor: toggle + title). */
+    header?: StrategyHeaderConfig;
+    /**
+     * Badges rendered at the top of the home view.
+     * Accepts either full badge config objects (hand-authored YAML) or plain
+     * entity_id strings (written by the graphical editor's entity picker).
+     * `buildViewBadges` normalises strings to `{ type: 'entity', entity }`;
+     * objects are passed through unchanged.
+     */
+    badges?: (string | Record<string, unknown>)[];
 }
 
 /**

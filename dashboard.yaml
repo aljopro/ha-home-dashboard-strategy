@@ -1,0 +1,29 @@
+type: custom:dashboard-rooms-sections
+excluded_entities:
+    - light.sleepnumber_main_bedroom_light_1
+badges:
+    - type: entity
+      show_name: true
+      show_state: true
+      show_icon: true
+      entity: lock.front_door_lock
+      tap_action:
+          action: toggle
+    - type: entity
+      show_name: true
+      show_state: true
+      show_icon: true
+      entity: cover.garage_door_door
+      tap_action:
+          action: toggle
+    - type: entity
+      show_state: false
+      show_name: true
+      entity: automation.going_to_bed
+      icon: mdi:sleep
+      color: indigo
+      tap_action:
+          action: call-service
+          service: automation.trigger
+          target:
+              entity_id: automation.going_to_bed

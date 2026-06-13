@@ -7,6 +7,9 @@ import { describe, it, expect } from 'vitest';
 import {
     buildGridSection,
     buildHomeView,
+    buildViewHeader,
+    buildViewBadges,
+    buildSuggestedSection,
     buildFavoritesSection,
     buildSummarySection,
     buildAreaCardsGridSection,
@@ -52,17 +55,20 @@ describe('viewAssembly', () => {
             });
         });
 
-        it('includes config header and badges', () => {
+        it('transforms config header and badges into view config', () => {
             const config = {
                 header: { title: 'My Dashboard' },
-                badges: [{ entity: 'sun.sun' }],
+                badges: ['sun.sun'],
             };
             const sections: GridSection[] = [];
 
             const result = buildHomeView(sections, config);
 
-            expect(result.header).toEqual({ title: 'My Dashboard' });
-            expect(result.badges).toEqual([{ entity: 'sun.sun' }]);
+            expect(result.header).toEqual({
+                card: { type: 'heading', heading: 'My Dashboard' },
+                layout: 'center',
+            });
+            expect(result.badges).toEqual([{ type: 'entity', entity: 'sun.sun' }]);
         });
 
         it('uses default header and badges if not provided', () => {
@@ -82,6 +88,79 @@ describe('viewAssembly', () => {
             const result = buildHomeView(sections, config);
 
             expect(result.sections).toHaveLength(1);
+        });
+    });
+
+    describe('buildViewHeader', () => {
+        it('returns empty object when header is undefined', () => {
+            expect(buildViewHeader(undefined)).toEqual({});
+        });
+
+        it('returns empty object when explicitly hidden', () => {
+            expect(buildViewHeader({ show: false, title: 'Ignored' })).toEqual({});
+        });
+
+        it('renders a centered heading card from the title', () => {
+            expect(buildViewHeader({ show: true, title: 'My Home' })).toEqual({
+                card: { type: 'heading', heading: 'My Home' },
+                layout: 'center',
+            });
+        });
+
+        it('treats omitted show as visible', () => {
+            expect(buildViewHeader({ title: 'My Home' })).toEqual({
+                card: { type: 'heading', heading: 'My Home' },
+                layout: 'center',
+            });
+        });
+
+        it('returns empty object when shown without a title', () => {
+            expect(buildViewHeader({ show: true })).toEqual({});
+        });
+    });
+
+    describe('buildViewBadges', () => {
+        it('returns empty array when undefined', () => {
+            expect(buildViewBadges(undefined)).toEqual([]);
+        });
+
+        it('returns empty array when empty', () => {
+            expect(buildViewBadges([])).toEqual([]);
+        });
+
+        it('maps entity_id strings to entity badge configs', () => {
+            expect(buildViewBadges(['sun.sun', 'light.kitchen'])).toEqual([
+                { type: 'entity', entity: 'sun.sun' },
+                { type: 'entity', entity: 'light.kitchen' },
+            ]);
+        });
+
+        it('passes full badge objects through unchanged (hand-authored YAML)', () => {
+            const richBadge = {
+                type: 'entity',
+                entity: 'lock.front_door_lock',
+                show_name: true,
+                tap_action: { action: 'toggle' },
+            };
+            expect(buildViewBadges([richBadge])).toEqual([richBadge]);
+        });
+
+        it('handles a mix of strings and objects', () => {
+            const richBadge = { type: 'entity', entity: 'cover.garage_door_door', show_name: true };
+            const result = buildViewBadges(['sun.sun', richBadge]);
+            expect(result[0]).toEqual({ type: 'entity', entity: 'sun.sun' });
+            expect(result[1]).toBe(richBadge);
+        });
+    });
+
+    describe('buildSuggestedSection', () => {
+        it('returns null when disabled', () => {
+            expect(buildSuggestedSection(false)).toBeNull();
+        });
+
+        it('returns null when enabled (no usage data yet)', () => {
+            // Plumbed end-to-end but intentionally inert until usage data exists.
+            expect(buildSuggestedSection(true)).toBeNull();
         });
     });
 

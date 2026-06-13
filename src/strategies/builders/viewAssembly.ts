@@ -3,7 +3,13 @@
  * Takes cards and sections, assembles them into views.
  */
 
-import type { LovelaceSection, LovelaceView, StrategyCard } from '../../types/cards.js';
+import type {
+    DashboardStrategyConfig,
+    LovelaceSection,
+    SectionsView,
+    StrategyCard,
+    StrategyHeaderConfig,
+} from '../../types/cards.js';
 
 /**
  * Build a grid section from cards.
@@ -17,20 +23,51 @@ export function buildGridSection(cards: StrategyCard[], columnSpan: number = 4):
 }
 
 /**
+ * Transform the strategy's header config into a Lovelace view header object.
+ * Returns an empty header when hidden or unconfigured. A `title` is rendered as
+ * a centered heading card in the view header.
+ */
+export function buildViewHeader(header?: StrategyHeaderConfig): Record<string, unknown> {
+    if (!header || header.show === false) return {};
+
+    const out: Record<string, unknown> = {};
+    if (header.title) {
+        out.card = { type: 'heading', heading: header.title };
+        out.layout = 'center';
+    }
+    return out;
+}
+
+/**
+ * Transform configured badge entity_ids into Lovelace entity-badge configs.
+ */
+/**
+ * Normalise badge entries: plain strings (from the graphical editor's entity
+ * picker) become `{ type: 'entity', entity }`; full badge objects (hand-authored
+ * YAML) pass through unchanged so existing configs keep working.
+ */
+export function buildViewBadges(badges?: (string | Record<string, unknown>)[]): unknown[] {
+    if (!badges || badges.length === 0) return [];
+    return badges.map((badge) =>
+        typeof badge === 'string' ? { type: 'entity', entity: badge } : badge
+    );
+}
+
+/**
  * Build the home view from sections.
  */
 export function buildHomeView(
     sections: LovelaceSection[],
-    config: any // DashboardStrategyConfig
-): LovelaceView {
+    config: Pick<DashboardStrategyConfig, 'header' | 'badges'>
+): SectionsView {
     return {
         title: 'Home',
         path: 'home',
         type: 'sections',
         max_columns: 4,
         sections: sections.filter(Boolean) as LovelaceSection[],
-        header: config.header || {},
-        badges: config.badges || [],
+        header: buildViewHeader(config.header),
+        badges: buildViewBadges(config.badges),
     };
 }
 
@@ -56,6 +93,22 @@ export function buildFavoritesSection(favoriteEntityIds: string[]): LovelaceSect
         ],
         4
     );
+}
+
+/**
+ * Build the "suggested" (frequently-used) entities section.
+ *
+ * The graphical editor exposes a `suggested` toggle, but computing which
+ * entities are "frequently used" requires usage/analytics data that the strategy
+ * does not currently receive from `hass`. Until that data source exists this
+ * returns null even when enabled — the flag is plumbed end-to-end so the UI and
+ * config round-trip correctly. See memory: visual-config-editor-spec.
+ */
+export function buildSuggestedSection(showSuggested: boolean): LovelaceSection | null {
+    if (!showSuggested) return null;
+    // TODO: derive frequently-used entity_ids once usage data is available,
+    // then return a grid section mirroring buildFavoritesSection.
+    return null;
 }
 
 /**

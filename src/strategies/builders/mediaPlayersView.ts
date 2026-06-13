@@ -3,7 +3,7 @@
  * Groups media players by area, returns a LovelaceView.
  */
 
-import type { LovelaceView, StrategyCard, MediaControlCard, HeadingCard } from '../../types/cards.js';
+import type { SectionsView, StrategyCard, MediaControlCard, HeadingCard } from '../../types/cards.js';
 import { Area, Entity } from '../../types/core.js';
 import { getEntityAreaId } from './entityFilters.js';
 
@@ -101,7 +101,7 @@ export function buildMediaPlayersView(
     mediaByArea: Map<string, string[]>,
     unassignedMedia: string[],
     areas: Area[]
-): LovelaceView {
+): SectionsView {
     const areaCards = buildAreaMediaCards(areas, mediaByArea);
     const otherCards = buildUnassignedMediaCards(unassignedMedia);
 

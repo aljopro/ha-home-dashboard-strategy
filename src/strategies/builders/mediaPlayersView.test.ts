@@ -10,8 +10,8 @@ import {
     buildUnassignedMediaCards,
     buildMediaPlayersView,
 } from './mediaPlayersView.js';
-import type { Entity, HeadingCard } from '../../types/cards.js';
-import { Area } from '../../types/core.js';
+import type { HeadingCard } from '../../types/cards.js';
+import { Area, Entity } from '../../types/core.js';
 
 describe('mediaPlayersView', () => {
     describe('groupMediaPlayersByArea', () => {

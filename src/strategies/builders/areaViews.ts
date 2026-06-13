@@ -3,7 +3,7 @@
  * Takes area + entities + domain info, returns a LovelaceView.
  */
 
-import type { HomeAssistant, LovelaceView, StrategyCard } from '../../types/cards.js';
+import type { HomeAssistant, LovelaceView, SectionsView, StrategyCard } from '../../types/cards.js';
 import { EntityDomainInfo, Entity, Area, EntityContext } from '../../types/core.js';
 import { filterEntities, getEntityAreaId } from './entityFilters.js';
 
@@ -67,7 +67,7 @@ export function buildAreaView(
     area: Area,
     entityContexts: EntityContext[],
     domains: EntityDomainInfo[]
-): LovelaceView {
+): SectionsView {
     const areaId = area.area_id;
     const areaTitle = area.name;
     const domainCards = buildAreaDomainCards(entityContexts, hass, area, domains);
@@ -94,7 +94,7 @@ export function buildAreaViews(
     hass: HomeAssistant,
     areas: Area[],
     domains: EntityDomainInfo[]
-): LovelaceView[] {
+): SectionsView[] {
     return areas.map((area) => {
         const areaEntityContexts = entityContexts.filter((entityContext) => entityContext.area?.area_id === area.area_id);
         if (areaEntityContexts.length === 0) {
@@ -102,5 +102,5 @@ export function buildAreaViews(
         }
 
         return buildAreaView(hass, area, areaEntityContexts, domains);
-    }).filter((view): view is LovelaceView => view !== null);
+    }).filter((view): view is SectionsView => view !== null);
 }
