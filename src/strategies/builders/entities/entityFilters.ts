@@ -66,7 +66,12 @@ export function generateEntityFilter(hass: HomeAssistant, filter: EntityFilter):
             }
         }
         if (deviceClasses && deviceClasses.size > 0) {
-            const deviceClass = context.entity?.device_class || 'none';
+            // device_class lives on the entity STATE attributes, not the registry
+            // display entry (EntityRegistryDisplayEntry has no device_class). HA's
+            // own entity_filter reads it the same way. Reading the registry entry
+            // here always yielded undefined → 'none' in real HA, silently failing
+            // every device_class filter (e.g. Security door/window sensors).
+            const deviceClass = (context.state?.attributes?.device_class as string | undefined) || 'none';
 
             if (!deviceClasses.has(deviceClass)) {
                 return false;

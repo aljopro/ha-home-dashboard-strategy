@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     filterEntitiesByDomainAndExclusions,
+    generateEntityFilter,
     sortEntitiesAlphabetically,
     filterValidAreas,
     sortAreasAlphabetically,
@@ -14,6 +15,7 @@ import {
     isEntityVisible,
 } from './entityFilters.js';
 import type { Entity, Area, EntityDomainInfo } from '../../../types/core.js';
+import type { HomeAssistant } from '../../../types/cards.js';
 
 function makeMinimalHass(entityDefs: Array<{ entityId: string; deviceId?: string; areaId?: string }>) {
     const h: any = { entities: {}, states: {}, devices: {}, areas: {} };
@@ -34,6 +36,39 @@ describe('entityFilters', () => {
         { id: 'light', name: 'Lights', icon: 'mdi:lightbulb', filter: [{ domain: 'light' }] },
         { id: 'switch', name: 'Switches', icon: 'mdi:toggle-switch', filter: [{ domain: 'switch' }] },
     ];
+
+    describe('generateEntityFilter device_class', () => {
+        // device_class is read from the entity STATE attributes (matching HA),
+        // not the registry display entry — which carries no device_class.
+        function hass(deviceClassInState?: string): HomeAssistant {
+            return {
+                entities: { 'binary_sensor.x': { entity_id: 'binary_sensor.x', device_id: 'd1' } },
+                devices: { d1: { id: 'd1', area_id: null } },
+                areas: {},
+                states: {
+                    'binary_sensor.x': {
+                        state: 'off',
+                        attributes: deviceClassInState ? { device_class: deviceClassInState } : {},
+                    },
+                },
+            } as unknown as HomeAssistant;
+        }
+
+        it('matches when the state attribute device_class is in the filter set', () => {
+            const filter = generateEntityFilter(hass('door'), { domain: 'binary_sensor', device_class: ['door', 'window'] });
+            expect(filter('binary_sensor.x')).toBe(true);
+        });
+
+        it('rejects when the state attribute device_class is not in the filter set', () => {
+            const filter = generateEntityFilter(hass('motion'), { domain: 'binary_sensor', device_class: ['door'] });
+            expect(filter('binary_sensor.x')).toBe(false);
+        });
+
+        it('rejects when the entity has no device_class attribute at all', () => {
+            const filter = generateEntityFilter(hass(undefined), { domain: 'binary_sensor', device_class: ['door'] });
+            expect(filter('binary_sensor.x')).toBe(false);
+        });
+    });
 
     describe('filterEntitiesByDomainAndExclusions', () => {
         it('filters entities by included domains', () => {
