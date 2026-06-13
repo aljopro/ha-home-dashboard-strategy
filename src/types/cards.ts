@@ -15,7 +15,7 @@ import { EntityRegistry, DeviceRegistry, AreaRegistry, HassStates } from "./core
  * Aligns with HA frontend ActionConfig pattern.
  */
 export interface ActionConfig {
-    action: 'navigate' | 'call-service' | 'toggle' | 'more-info' | 'url';
+    action: 'navigate' | 'call-service' | 'toggle' | 'more-info' | 'url' | 'none';
     navigation_path?: string;
     service?: string;
     service_data?: Record<string, unknown>;
@@ -136,6 +136,12 @@ export interface DomainSummaryCard extends LovelaceCardConfig {
     type: 'custom:ll-domain-summary-card';
     /** HA domain (e.g. `light`) or pseudo-domain (e.g. `security`) to summarize. */
     domain: string;
+    /**
+     * Single entity to summarize instead of a whole domain (entity mode, used by
+     * Weather). When set, the subtitle is derived from this entity rather than a
+     * domain aggregate, and the default tap opens its more-info.
+     */
+    entity?: string;
     /** Display label, e.g. "Lights". Falls back to `domain` when omitted. */
     label?: string;
     /** mdi icon name, e.g. "mdi:lightbulb-group". */
@@ -144,6 +150,12 @@ export interface DomainSummaryCard extends LovelaceCardConfig {
     color?: string;
     /** Dashboard path navigated to on tap, e.g. "/lovelace/lights". */
     navigation_path?: string;
+    /**
+     * Tap behaviour (more-info / navigate / url). Takes precedence over
+     * navigation_path. When neither is set and `entity` is present, tap opens the
+     * entity's more-info.
+     */
+    tap_action?: ActionConfig;
     grid_options?: { columns?: number };
 }
 

@@ -88,19 +88,23 @@ Depends on: nothing. This is the foundation for all domain summary cards.
 
 ## Weather Summary (card only — configurable tap action)
 
-- [x] `tile` card pointing to configured `weather.*` entity (shows current temperature/condition)
-- [x] Configurable `tap_action` (more-info / navigate / url); default (unset) is
-      the tile's own more-info — opening the weather entity view
+- [x] Renders through our own `ll-domain-summary-card` (entity mode) so it sits
+      flush with the other Summaries cards (same height/chrome). Subtitle is
+      temperature + condition, e.g. "90 °F · Partly cloudy" (weatherSummaryText)
+- [x] Configurable `tap_action` (more-info / navigate / url); default (unset)
+      opens the weather entity's more-info. The card ports tap_action support
+      (the summary card previously navigated only)
 - [x] Gate: only shown when the resolved weather entity exists in `hass.states`
 - [x] Config field on `DashboardStrategyConfig`:
       ```ts
       weather?: {
         /** entity_id of the weather entity to read temp/condition from. Defaults to first `weather.*` in hass.states. */
         entity?: string;
-        /** Tap behaviour (more-info / navigate / url). Default more-info via the tile. */
+        /** Tap behaviour (more-info / navigate / url). Default more-info. */
         tap_action?: ActionConfig;
       };
       ```
+- [ ] Follow-on: condition-reactive icon (currently a static weather glyph)
 - [x] Graphical editor: entity picker (filtered to `weather` domain) + `ui_action`
       selector restricted to more-info / navigate / url (navigate shows the
       ha-navigation-picker dashboard/view list)

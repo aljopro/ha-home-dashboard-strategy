@@ -15,6 +15,7 @@ import { LitElement, html, css, nothing } from 'lit';
 import type { PropertyValues } from 'lit';
 import type { DomainSummaryCard as DomainSummaryCardConfig, HomeAssistant } from '../../types/cards.js';
 import { computeDomainSummary, domainHasActivity, summaryDomains } from './domainSummary.js';
+import { weatherSummaryText } from '../builders/home/weatherCard.js';
 
 export class DomainSummaryCard extends LitElement {
     static properties = {
@@ -66,20 +67,22 @@ export class DomainSummaryCard extends LitElement {
     protected render() {
         if (!this._config || !this.hass) return nothing;
 
-        const { domain, label, icon, color } = this._config;
-        const subtitle = computeDomainSummary(domain, this.hass);
+        const { domain, entity, label, icon, color } = this._config;
 
-        // State-driven coloring: the accent color shows only while the domain is
-        // active (e.g. a light is on); otherwise the icon uses the default
-        // (greyed) state color. See domainHasActivity.
-        const active = domainHasActivity(domain, this.hass);
+        // Entity mode (Weather): subtitle comes from the single entity and there
+        // is no domain "activity" coloring. Domain mode: aggregate + accent color
+        // while active (e.g. a light is on); otherwise the default state color.
+        const subtitle = entity
+            ? weatherSummaryText(this.hass, entity)
+            : computeDomainSummary(domain, this.hass);
+        const active = entity ? false : domainHasActivity(domain, this.hass);
         const iconStyle = active && color ? `color: ${color}` : nothing;
 
         return html`
             <ha-card
                 role="button"
                 tabindex="0"
-                @click=${this._navigate}
+                @click=${this._handleTap}
                 @keydown=${this._handleKeydown}
             >
                 <div class="row">
@@ -95,10 +98,37 @@ export class DomainSummaryCard extends LitElement {
         `;
     }
 
+    /**
+     * Resolve the tap behaviour. `tap_action` (more-info / navigate / url) wins;
+     * otherwise a `navigation_path` navigates (domain summary cards); otherwise,
+     * for an entity card (Weather), the default is the entity's more-info.
+     */
+    private _handleTap = (): void => {
+        const action = this._config?.tap_action;
+        if (action) {
+            switch (action.action) {
+                case 'none':
+                    return;
+                case 'url':
+                    if (action.url) window.open(action.url);
+                    return;
+                case 'navigate':
+                    if (action.navigation_path) this._navigateTo(action.navigation_path);
+                    return;
+                case 'more-info':
+                    if (this._config?.entity) this._fireMoreInfo(this._config.entity);
+                    return;
+            }
+        }
+        if (this._config?.navigation_path) {
+            this._navigateTo(this._config.navigation_path);
+        } else if (this._config?.entity) {
+            this._fireMoreInfo(this._config.entity);
+        }
+    };
+
     /** HA navigation convention: push history then fire `location-changed`. */
-    private _navigate = (): void => {
-        const path = this._config?.navigation_path;
-        if (!path) return;
+    private _navigateTo(path: string): void {
         history.pushState(null, '', path);
         this.dispatchEvent(
             new CustomEvent('location-changed', {
@@ -107,12 +137,23 @@ export class DomainSummaryCard extends LitElement {
                 detail: { replace: false },
             })
         );
-    };
+    }
+
+    /** HA convention: open the entity's more-info dialog. */
+    private _fireMoreInfo(entityId: string): void {
+        this.dispatchEvent(
+            new CustomEvent('hass-more-info', {
+                bubbles: true,
+                composed: true,
+                detail: { entityId },
+            })
+        );
+    }
 
     private _handleKeydown = (ev: KeyboardEvent): void => {
         if (ev.key === 'Enter' || ev.key === ' ') {
             ev.preventDefault();
-            this._navigate();
+            this._handleTap();
         }
     };
 

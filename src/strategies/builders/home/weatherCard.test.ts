@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildWeatherCard, resolveWeatherEntity } from './weatherCard.js';
+import { buildWeatherCard, resolveWeatherEntity, weatherSummaryText } from './weatherCard.js';
 import type { HomeAssistant } from '../../../types/cards.js';
 
 function hassWith(stateIds: string[]): HomeAssistant {
@@ -28,22 +28,47 @@ describe('resolveWeatherEntity', () => {
     });
 });
 
-describe('buildWeatherCard', () => {
-    it('builds a tile for the resolved weather entity with no tap_action by default', () => {
-        const card = buildWeatherCard(hassWith(['weather.home']));
-        expect(card).toEqual({
-            type: 'tile',
-            entity: 'weather.home',
-            grid_options: { columns: 12 },
-            state_content: ['temperature', 'state'],
-        });
-        // default (no tap_action) → tile falls back to more-info
-        expect(card?.tap_action).toBeUndefined();
+describe('weatherSummaryText', () => {
+    function hass(attrs: Record<string, unknown>, state = 'partlycloudy', format?: (s: any) => string): HomeAssistant {
+        return {
+            states: { 'weather.home': { state, attributes: attrs } },
+            formatEntityState: format,
+        } as unknown as HomeAssistant;
+    }
+
+    it('joins temperature (with unit) and condition with a dot', () => {
+        const h = hass({ temperature: 90, temperature_unit: '°F' }, 'partlycloudy', () => 'Partly cloudy');
+        expect(weatherSummaryText(h, 'weather.home')).toBe('90 °F · Partly cloudy');
     });
 
-    it('shows temperature then condition on the state line', () => {
+    it('falls back to the raw state when formatEntityState is unavailable', () => {
+        const h = hass({ temperature: 12, temperature_unit: '°C' }, 'sunny');
+        expect(weatherSummaryText(h, 'weather.home')).toBe('12 °C · sunny');
+    });
+
+    it('omits temperature when absent', () => {
+        const h = hass({}, 'cloudy', () => 'Cloudy');
+        expect(weatherSummaryText(h, 'weather.home')).toBe('Cloudy');
+    });
+
+    it('returns empty string for a missing entity', () => {
+        expect(weatherSummaryText(hass({}), 'weather.gone')).toBe('');
+    });
+});
+
+describe('buildWeatherCard', () => {
+    it('builds an ll-domain-summary-card (entity mode) by default, no tap_action', () => {
         const card = buildWeatherCard(hassWith(['weather.home']));
-        expect(card?.state_content).toEqual(['temperature', 'state']);
+        expect(card).toEqual({
+            type: 'custom:ll-domain-summary-card',
+            domain: 'weather',
+            entity: 'weather.home',
+            label: 'Weather',
+            icon: 'mdi:weather-partly-cloudy',
+            grid_options: { columns: 12 },
+        });
+        // default (no tap_action) → card falls back to the entity's more-info
+        expect(card?.tap_action).toBeUndefined();
     });
 
     it('applies a configured entity and tap_action verbatim', () => {

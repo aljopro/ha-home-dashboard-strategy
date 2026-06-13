@@ -90,12 +90,12 @@ describe('shouldUpdate', () => {
     });
 });
 
-describe('navigation', () => {
-    function navigate(card: DomainSummaryCard): void {
-        (card as unknown as { _navigate: () => void })._navigate();
+describe('tap behaviour', () => {
+    function tap(card: DomainSummaryCard): void {
+        (card as unknown as { _handleTap: () => void })._handleTap();
     }
 
-    it('pushes history and fires location-changed on tap', () => {
+    it('pushes history and fires location-changed for a navigation_path', () => {
         const card = makeCard({ domain: 'light', navigation_path: '/lovelace/lights' });
         const pushSpy = vi.spyOn(history, 'pushState');
         let fired: CustomEvent | undefined;
@@ -103,7 +103,7 @@ describe('navigation', () => {
             fired = ev as CustomEvent;
         });
 
-        navigate(card);
+        tap(card);
 
         expect(pushSpy).toHaveBeenCalledWith(null, '', '/lovelace/lights');
         expect(fired).toBeDefined();
@@ -112,7 +112,7 @@ describe('navigation', () => {
         pushSpy.mockRestore();
     });
 
-    it('does nothing when no navigation_path is configured', () => {
+    it('does nothing when neither navigation_path, tap_action nor entity is set', () => {
         const card = makeCard({ domain: 'light' });
         const pushSpy = vi.spyOn(history, 'pushState');
         let fired = false;
@@ -120,11 +120,56 @@ describe('navigation', () => {
             fired = true;
         });
 
-        navigate(card);
+        tap(card);
 
         expect(pushSpy).not.toHaveBeenCalled();
         expect(fired).toBe(false);
         pushSpy.mockRestore();
+    });
+
+    it('fires hass-more-info for an entity card with no tap_action (weather default)', () => {
+        const card = makeCard({ domain: 'weather', entity: 'weather.home' });
+        let fired: CustomEvent | undefined;
+        card.addEventListener('hass-more-info', (ev) => {
+            fired = ev as CustomEvent;
+        });
+
+        tap(card);
+
+        expect(fired?.detail).toEqual({ entityId: 'weather.home' });
+        expect(fired?.composed).toBe(true);
+    });
+
+    it('honours a more-info tap_action', () => {
+        const card = makeCard({ domain: 'weather', entity: 'weather.home', tap_action: { action: 'more-info' } });
+        let fired: CustomEvent | undefined;
+        card.addEventListener('hass-more-info', (ev) => {
+            fired = ev as CustomEvent;
+        });
+
+        tap(card);
+
+        expect(fired?.detail).toEqual({ entityId: 'weather.home' });
+    });
+
+    it('honours a navigate tap_action over more-info', () => {
+        const card = makeCard({
+            domain: 'weather',
+            entity: 'weather.home',
+            tap_action: { action: 'navigate', navigation_path: '/dashboard-weather/0' },
+        });
+        const pushSpy = vi.spyOn(history, 'pushState');
+        tap(card);
+        expect(pushSpy).toHaveBeenCalledWith(null, '', '/dashboard-weather/0');
+        pushSpy.mockRestore();
+    });
+
+    it('honours a url tap_action', () => {
+        const card = makeCard({ domain: 'weather', entity: 'weather.home', tap_action: { action: 'url', url: 'https://w.example' } });
+        const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+        tap(card);
+        expect(openSpy).toHaveBeenCalledWith('https://w.example');
+        openSpy.mockRestore();
     });
 });
 
