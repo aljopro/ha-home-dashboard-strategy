@@ -69,14 +69,85 @@ Depends on: nothing. This is the foundation for all domain summary cards.
 
 ---
 
+## Remote View (picker + remembered device)
+
+Unlike the other domain subviews (which *list* every entity), the Remote view is
+a single interactive card: the user picks a room, then a media player in that
+room, and the remote pad targets that device. The selection is remembered per
+browser via `localStorage`, so returning to the view restores the last device.
+Inspired by `Nerwyn/universal-remote-card`, but built as our own LitElement (no
+HA-frontend imports — see memory `feedback-ha-frontend-imports`).
+
+- [ ] `home-remote` subview strategy (`custom:home-remote` →
+      `ll-strategy-view-home-remote`); registered via `registerViewStrategy` and
+      side-effect imported in `rooms_sections_strategy.ts` alongside the other
+      `home-*` views. Navigation path: `remote`.
+- [ ] The subview generates a single `custom:ll-remote-card` (no entity list).
+      Pure builder `buildRemoteView()` in `builders/subviews/remoteView.ts`,
+      mirroring `mediaPlayersView.ts` (returns a `SectionsView`).
+- [ ] `ll-remote-card` — own LitElement registered exactly like
+      `ll-domain-summary-card` (guarded `customElements.define`, decorator-free
+      `static properties`, theme-token styling only; see
+      `docs/UI_and_Lit_Standards.md` and `domainSummaryCard.ts`).
+- [ ] **Picker:** Room `<ha-select>` (areas that contain a `media_player.*`) →
+      Player `<ha-select>` (players in that room; an "Other" group for
+      area-less players). Reuses `groupMediaPlayersByArea` / `getEntityAreaId`
+      from `mediaPlayersView.ts` + `entityFilters.ts`.
+- [ ] **Remember selection:** persist the chosen `entity_id` to `localStorage`
+      under key `ll-remote-card:last-player`. On first render, restore it and
+      pre-select its room; **validate** the stored id still exists in
+      `hass.states` (else fall back to the empty picker). All `localStorage`
+      access wrapped in try/catch (private mode / disabled storage must not throw).
+- [ ] **Remote pad (media_player services — works for every player):**
+      power `media_player.toggle`; volume `volume_up` / `volume_down` /
+      `volume_mute`; transport `media_previous_track` / `media_play_pause` /
+      `media_next_track` / `media_stop`; source `media_player.select_source`
+      from `attributes.source_list`. Buttons reflect live state (playing/paused
+      glyph, mute state, current source, power on/off) read from `hass.states`.
+- [ ] **D-pad / navigation (conditional):** up/down/left/right/ok + back/home/menu
+      only render when a companion `remote.*` entity resolves for the selected
+      player's `device_id` (media_player has no native d-pad). Dispatched via
+      `remote.send_command`. Hidden entirely when no remote entity is found.
+- [ ] `shouldUpdate` gates re-render to ticks where the selected player (or its
+      companion remote) changed reference, matching the `domainSummaryCard`
+      pattern.
+- [ ] **Entry point:** a "Remote" summary card in the home Summaries section,
+      gated on the `media_player` domain, `navigation_path: remote`. Subtitle =
+      remembered player's friendly name (read from the same `localStorage` key)
+      or "Tap to pick a device". (Simpler fallback: static "Remote" label if we
+      want to avoid coupling the summary card to `localStorage`.)
+- [ ] Tests: pure `buildRemoteView` shape test; card unit tests for
+      localStorage restore + stale-id validation, room→player filtering, the
+      service-call mapping for each button, and d-pad gating on a present/absent
+      companion remote (follow `docs/Testing_Standards.md`).
+- [ ] Follow-on: per-integration key maps (webOS / Android TV) so the d-pad and
+      extra keys work without a generic `remote.*` entity.
+- [ ] Follow-on: optional `default_player` config field as the fallback when
+      `localStorage` is empty (first-run experience).
+- [ ] Follow-on: touchpad gesture surface (swipe → directional `send_command`),
+      the headline feature of universal-remote-card; deferred until the button
+      remote is solid.
+
+Complexity: medium-high (first stateful/interactive card; localStorage; companion
+remote resolution). The picker + persistence is the novel part — the button grid
+is mechanical.
+
+---
+
 ## Maintenance View + Summary
 
 - [x] `home-maintenance` subview strategy
 - [x] Lists `update.*` entities with an update available (tiles carry the
       `update-actions` feature for install/skip)
-- [x] Lists `binary_sensor.*` device-class `battery` in the `on` (low) state
-- [x] Lists `sensor.*` device-class `battery` at or below threshold (≤ 20%)
-- [x] Lists unavailable battery entities (device-offline proxy, matching HA)
+- [x] Batteries section lists ALL battery entities (sensor + binary_sensor),
+      sorted lowest level first (binary `on`→0, `off`→100, unreadable last);
+      the summary card still counts only low ones (≤ 20% / binary `on`)
+- [x] Lists `unavailable` entities in controllable domains only (light, switch,
+      cover, climate, fan, lock, media_player, vacuum, …) so an offline device
+      surfaces as the thing you operate, not its dozens of sensor/number
+      entities; diagnostic/config and hidden entities excluded
+- [ ] Follow-on: per-device collapse (one "X is offline" row) if controllable
+      filtering still proves too noisy
 - [x] Summary card aggregate: detailed breakdown, e.g. "1 low battery,
       1 unavailable" / "All good"; gated on having any items
 - [x] Navigation path: `maintenance`
