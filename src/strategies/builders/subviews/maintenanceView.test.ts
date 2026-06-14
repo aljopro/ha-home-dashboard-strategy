@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     buildMaintenanceView,
+    collectBatteriesSorted,
     collectMaintenanceItems,
     hasMaintenanceItems,
     maintenanceItemCount,
@@ -20,7 +21,9 @@ function makeHass(): HomeAssistant {
     const battery = (dc = 'battery') => ({ device_class: dc });
     return {
         areas: {},
-        devices: Object.fromEntries(['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8'].map((id) => [id, { id }])),
+        devices: Object.fromEntries(
+            ['d1', 'd2', 'd3', 'd4', 'd5', 'd6', 'd7', 'd8', 'd9', 'd10'].map((id) => [id, { id }])
+        ),
         entities: {
             'sensor.phone_battery': { entity_id: 'sensor.phone_battery', device_id: 'd1' },
             'sensor.tablet_battery': { entity_id: 'sensor.tablet_battery', device_id: 'd2' },
@@ -30,6 +33,10 @@ function makeHass(): HomeAssistant {
             'update.router_fw': { entity_id: 'update.router_fw', device_id: 'd6' },
             'update.tv_fw': { entity_id: 'update.tv_fw', device_id: 'd7' },
             'sensor.kitchen_temp': { entity_id: 'sensor.kitchen_temp', device_id: 'd8' },
+            // a broken light (user-facing) → unavailable
+            'light.broken': { entity_id: 'light.broken', device_id: 'd9' },
+            // a diagnostic signal sensor that's offline → excluded (too noisy)
+            'sensor.wifi_signal': { entity_id: 'sensor.wifi_signal', device_id: 'd10', entity_category: 'diagnostic' },
         },
         states: {
             // 15% → low
@@ -46,8 +53,12 @@ function makeHass(): HomeAssistant {
             'update.router_fw': { state: 'on', attributes: { friendly_name: 'Router Firmware' } },
             // up to date
             'update.tv_fw': { state: 'off', attributes: { friendly_name: 'TV Firmware' } },
-            // not a battery → excluded
+            // not a battery, online → excluded
             'sensor.kitchen_temp': { state: '21', attributes: { device_class: 'temperature', friendly_name: 'Kitchen Temp' } },
+            // broken light → unavailable (user-facing)
+            'light.broken': { state: 'unavailable', attributes: { friendly_name: 'Broken Light' } },
+            // diagnostic, offline → excluded
+            'sensor.wifi_signal': { state: 'unavailable', attributes: { friendly_name: 'Wifi Signal' } },
         },
     } as unknown as HomeAssistant;
 }
@@ -58,10 +69,23 @@ describe('collectMaintenanceItems', () => {
         expect(updateIds).toEqual(['update.router_fw']);
         // Door Battery < Phone Battery
         expect(lowBatteryIds).toEqual(['binary_sensor.door_battery', 'sensor.phone_battery']);
-        expect(unavailableIds).toEqual(['sensor.garage_battery']);
+        // only controllable domains: the broken light, not the offline sensor
+        expect(unavailableIds).toEqual(['light.broken']);
     });
 
-    it('excludes healthy batteries, up-to-date updates, and non-battery sensors', () => {
+    it('includes a broken controllable entity under unavailable', () => {
+        expect(collectMaintenanceItems(makeHass()).unavailableIds).toContain('light.broken');
+    });
+
+    it('excludes non-controllable domains (offline sensors) and diagnostics from unavailable', () => {
+        const { unavailableIds } = collectMaintenanceItems(makeHass());
+        // sensor.garage_battery is unavailable but a sensor → excluded
+        expect(unavailableIds).not.toContain('sensor.garage_battery');
+        // diagnostic sensor → excluded
+        expect(unavailableIds).not.toContain('sensor.wifi_signal');
+    });
+
+    it('excludes healthy batteries, up-to-date updates, and online non-battery sensors', () => {
         const { updateIds, lowBatteryIds, unavailableIds } = collectMaintenanceItems(makeHass());
         const all = [...updateIds, ...lowBatteryIds, ...unavailableIds];
         expect(all).not.toContain('sensor.tablet_battery');
@@ -71,8 +95,27 @@ describe('collectMaintenanceItems', () => {
     });
 });
 
+describe('collectBatteriesSorted', () => {
+    it('lists every battery sorted lowest level first (binary on=0, off=100, unreadable last)', () => {
+        expect(collectBatteriesSorted(makeHass())).toEqual([
+            'binary_sensor.door_battery', // on → 0
+            'sensor.phone_battery', // 15
+            'sensor.tablet_battery', // 90
+            'binary_sensor.window_battery', // off → 100
+            'sensor.garage_battery', // unavailable → last
+        ]);
+    });
+
+    it('includes healthy batteries the low-battery summary omits', () => {
+        const all = collectBatteriesSorted(makeHass());
+        expect(all).toContain('sensor.tablet_battery'); // 90% — not low
+        expect(collectMaintenanceItems(makeHass()).lowBatteryIds).not.toContain('sensor.tablet_battery');
+    });
+});
+
 describe('maintenanceItemCount / hasMaintenanceItems', () => {
     it('counts every category', () => {
+        // 1 update + 2 low battery + 1 unavailable (the broken light only)
         expect(maintenanceItemCount(makeHass())).toBe(4);
         expect(hasMaintenanceItems(makeHass())).toBe(true);
     });
@@ -94,7 +137,7 @@ describe('buildMaintenanceView', () => {
         const headings = (buildMaintenanceView(makeHass()).sections![0].cards.filter(
             (c) => c.type === 'heading'
         ) as HeadingCard[]).map((h) => h.heading);
-        expect(headings).toEqual(['Updates', 'Low battery', 'Unavailable']);
+        expect(headings).toEqual(['Updates', 'Batteries', 'Unavailable']);
     });
 
     it('gives update tiles the update-actions feature', () => {

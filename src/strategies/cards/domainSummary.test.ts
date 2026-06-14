@@ -62,7 +62,8 @@ function maintenanceHass(opts: { update?: boolean; lowBattery?: boolean; unavail
     };
     if (opts.update) add('update.router', 'on', { friendly_name: 'Router' });
     if (opts.lowBattery) add('sensor.phone_battery', '10', { device_class: 'battery', friendly_name: 'Phone' });
-    if (opts.unavailable) add('sensor.dead_battery', 'unavailable', { device_class: 'battery', friendly_name: 'Dead' });
+    // unavailable is restricted to controllable domains, so use a light
+    if (opts.unavailable) add('light.broken', 'unavailable', { friendly_name: 'Broken' });
     return { states, entities, devices, areas: {} } as unknown as HomeAssistant;
 }
 
